@@ -68,3 +68,28 @@ matchs.drop(['home_player_X1', 'home_player_X2', 'home_player_X3', 'home_player_
              'home_player_X6', 'home_player_X7', 'home_player_X8', 'home_player_X9', 'home_player_X10',
              'home_player_X11', 'away_player_X1', 'away_player_X2', 'away_player_X3', 'away_player_X4', 'away_player_X5',
              'away_player_X6', 'away_player_X7', 'away_player_X8', 'away_player_X9', 'away_player_X10', 'away_player_X11'], axis=1, inplace=True)
+
+# print(matchs['home_form'].value_counts())
+# print(matchs['away_form'].value_counts())
+
+# Cleaning the date (take only dd-mm-yyy)
+matchs['date'] = matchs['date'].apply(lambda x: x.split(' ')[0])
+
+ply_attr = player_attr[['player_api_id', 'overall_rating']]
+#ply_attr['date'] = ply_attr['date'].apply(lambda x: x.split(' ')[0])
+#ply_attr['date_year'] = ply_attr['date'].apply(lambda x: x.split('-')[0])
+
+ply_attr = ply_attr.groupby(['player_api_id']).mean()
+
+# Replace id of players with their overall rating at the date of the match
+
+ply_attr_dict = ply_attr.to_dict()['overall_rating']
+
+
+#test_matchs = matchs.head().copy()
+
+for i in range(1, 12):
+    matchs['home_player_overall_'+str(i)] = matchs.apply(
+        lambda x: ply_attr_dict[x['home_player_'+str(i)]], axis=1)
+    matchs['away_player_overall_'+str(i)] = matchs.apply(
+        lambda x: ply_attr_dict[x['away_player_'+str(i)]], axis=1)
