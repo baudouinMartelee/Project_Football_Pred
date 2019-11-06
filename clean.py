@@ -68,3 +68,6 @@ matchs.drop(['home_player_X1', 'home_player_X2', 'home_player_X3', 'home_player_
              'home_player_X6', 'home_player_X7', 'home_player_X8', 'home_player_X9', 'home_player_X10',
              'home_player_X11', 'away_player_X1', 'away_player_X2', 'away_player_X3', 'away_player_X4', 'away_player_X5',
              'away_player_X6', 'away_player_X7', 'away_player_X8', 'away_player_X9', 'away_player_X10', 'away_player_X11'], axis=1, inplace=True)
+
+    
+    
