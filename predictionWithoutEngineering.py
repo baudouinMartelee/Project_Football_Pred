@@ -6,26 +6,32 @@ Created on Wed Nov  6 17:46:00 2019
 """
 
 
-import sqlite3
 import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import Imputer
+from sklearn.preprocessing import Imputer,OrdinalEncoder
+from sklearn.preprocessing import LabelBinarizer,OneHotEncoder,MultiLabelBinarizer
 
-dat = sqlite3.connect('database.sqlite')
+from sklearn.base import BaseEstimator, TransformerMixin
+class DataFrameSelector(BaseEstimator, TransformerMixin):
+    def __init__(self, attribute_names):
+        self.attribute_names = attribute_names
+    def fit(self, X, y=None):        
+        return self
+    def transform(self, X):
+        return X[self.attribute_names].values
+    
+from sklearn.base import TransformerMixin #gives fit_transform method for free
+class MyLabelBinarizer(TransformerMixin):
+    def __init__(self, *args, **kwargs):
+        self.encoder = LabelBinarizer(*args, **kwargs)
+    def fit(self, x, y=0):
+        self.encoder.fit(x)
+        return self
+    def transform(self, x, y=0):
+        return self.encoder.transform(x)
 
-table = ["Country", "League", "X_Train", "Player", "Player_Attributes", 
-         "Team", "Team_Attributes"]
 
-csv = {}
-
-for name in table:
-  query = dat.execute("SELECT * From " + name)
-  cols = [column[0] for column in query.description]
-  results= pd.DataFrame.from_records(data = query.fetchall(), columns = cols)
-  results.to_csv(r''+name+'.csv')
-
-import pandas as pd
 
 matchs = pd.read_csv('X_Train.csv')
 players = pd.read_csv('Player.csv')
@@ -49,27 +55,142 @@ def det_label(score1, score2):
 matchs['label'] = matchs.apply(lambda row: det_label(
     row.home_team_goal, row.away_team_goal), axis=1)
 
-matchs = matchs.drop(['country_id', 'league_id', 'match_api_id','home_team_api_id', 'away_team_api_id', 'Unnamed: 0'], axis=1)
+#Droping irrelevent columns
+matchs = matchs.drop(['country_id', 'league_id','date', 'match_api_id','home_team_api_id', 'away_team_api_id', 'Unnamed: 0'], axis=1)
 
-matchs.shape
 
+###################################
+#        CLEANING DATA            #
+###################################        
+
+
+# Récupérer toutes les features du type float64
 numerical_data = matchs.select_dtypes("float64")
 
 num_attribs = list(numerical_data)
 
+#Changer le type des saisons d'objets à categorique
+matchs[['season']] = matchs[['season']].apply(lambda x: x.astype('category'))
+categorical_attrib = ['season']
 
-from sklearn.base import BaseEstimator, TransformerMixin
-class DataFrameSelector(BaseEstimator, TransformerMixin):
-    def __init__(self, attribute_names):
-        self.attribute_names = attribute_names
-    def fit(self, X, y=None):        
-        return self
-    def transform(self, X):
-        return X[self.attribute_names].values
+#label
+label = matchs[['label']]
+
+
+
+# Utilisation de pipeline pour clean les data
 
 num_pipeline = Pipeline([
             ('selector',DataFrameSelector(num_attribs)),
             ('imputer',Imputer(strategy="median")),
             ('min_max_scaler',MinMaxScaler()),
             ])
+    
+
+
+categorical_pipeline = Pipeline([
+                ('selector',DataFrameSelector(categorical_attrib)),
+                 ('label_binazer',MyLabelBinarizer()),
+        ])
+
+from sklearn.pipeline  import FeatureUnion
+full_pipeline = FeatureUnion(transformer_list=[
+            ("num_pipeline",num_pipeline),
+            ("categorical_pipeline",categorical_pipeline)
+        ])
+    
+#data are clean here
+match_cleaned = full_pipeline.fit_transform(matchs)
+
+
+
+###################################
+#     TEST DIFFERENT MODELS       #
+###################################  
+
+##### SPLIT DATA   #####µ
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+
+X_train, X_test, y_train, y_test = train_test_split(match_cleaned,label,random_state = 5)
+
+
+
+
+#####  RANDOM FOREST MODEL  ##### 
+
+from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier()
+
+rf.fit(X_train,y_train)
+
+predicted_values_SVM = rf.predict(X_test)
+
+print("score : ",rf.score(X_test,y_test))
+
+
+
+#####  KNeighbors  ##### 
+
+from sklearn.neighbors import KNeighborsClassifier
+
+rf = KNeighborsClassifier()
+
+rf.fit(X_train,y_train)
+
+predicted_values_SVM = rf.predict(X_test)
+
+print("score : ",rf.score(X_test,y_test))
+
+
+#####  SVM MODEL  ##### 
+from sklearn.svm import NuSVC
+
+rf = NuSVC(gamma='scale')
+
+rf.fit(X_train,y_train)
+
+predicted_values_SVM = rf.predict(X_test)
+
+print("score : ",rf.score(X_test,y_test))
+
+#####  SVM MODEL  ##### 
+from sklearn.svm import SVC
+
+rf = SVC(gamma='scale')
+
+rf.fit(X_train,y_train)
+
+predicted_values_SVM = rf.predict(X_test)
+
+print("score : ",rf.score(X_test,y_test))
+
+
+
+
+
+
+#####  to Calcul scores  ##### 
+from sklearn.model_selection import cross_val_score
+ 
+rf_scores = cross_val_score(rf,X_train,y_train,scoring="neg_mean_squared_error",cv=10)
+rf_rmse_scores = np.sqrt(-rf_scores)
+rf_rmse_scores
+def display_scores(scores):
+    print("Scores:", scores)
+    print("Mean:", scores.mean())
+    print("Standard deviation:", scores.std())
+ 
+display_scores(rf_rmse_scores)
+
+
+
+
+
+
+
+
 
