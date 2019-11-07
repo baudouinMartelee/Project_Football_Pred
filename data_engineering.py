@@ -1,5 +1,6 @@
 import pandas as pd
 from collections import Counter
+pd.options.mode.chained_assignment = None  # default='warn'
 
 
 class Data_Engineering:
@@ -17,7 +18,9 @@ class Data_Engineering:
         return matchs
 
     def run(self):
-            # Droping irrelevent columns
+
+        print('Engineering features...')
+        # Droping irrelevent columns
         self.matchs.drop(['country_id', 'league_id',
                           'match_api_id', 'Unnamed: 0'], axis=1, inplace=True)
 
