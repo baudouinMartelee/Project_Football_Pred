@@ -1,9 +1,9 @@
 import sqlite3
 import pandas as pd
 
-dat = sqlite3.connect('data/database/database.sqlite')
+dat = sqlite3.connect('../data/database/database.sqlite')
 
-table = ["Country", "League", "X_Train", "Player", "Player_Attributes",
+table = ["Country", "League", "X_Train", "X_Test","Player", "Player_Attributes",
          "Team", "Team_Attributes"]
 
 csv = {}
