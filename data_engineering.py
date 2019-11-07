@@ -4,9 +4,10 @@ from collections import Counter
 
 class Data_Engineering:
 
-    def __init__(self, matchs, player_attr):
+    def __init__(self, matchs, player_attr, teams):
         self.matchs = matchs
         self.ply_attr_dict = create_player_overall_dict(player_attr)
+        self.teams_name_dict = create_team_name_dict(teams)
 
     @staticmethod
     def add_labels(matchs):
@@ -17,8 +18,13 @@ class Data_Engineering:
 
     def run(self):
             # Droping irrelevent columns
-        self.matchs.drop(['country_id', 'league_id', 'match_api_id',
-                          'home_team_api_id', 'away_team_api_id', 'Unnamed: 0'], axis=1, inplace=True)
+        self.matchs.drop(['country_id', 'league_id',
+                          'match_api_id', 'Unnamed: 0'], axis=1, inplace=True)
+
+        self.matchs['home_team_name'] = self.matchs.apply(
+            lambda x: self.teams_name_dict[x['home_team_api_id']], axis=1)
+        self.matchs['away_team_name'] = self.matchs.apply(
+            lambda x: self.teams_name_dict[x['away_team_api_id']], axis=1)
 
         ######## FEATURES ENGINEERING ##############
 
@@ -34,16 +40,6 @@ class Data_Engineering:
             lambda x: create_formation(x, True), axis=1)
         self.matchs['away_form'] = self.matchs.apply(
             lambda x: create_formation(x, False), axis=1)
-
-        self.matchs.drop(['home_player_Y1', 'home_player_Y2', 'home_player_Y3', 'home_player_Y4', 'home_player_Y5',
-                          'home_player_Y6', 'home_player_Y7', 'home_player_Y8', 'home_player_Y9', 'home_player_Y10',
-                          'home_player_Y11', 'away_player_Y1', 'away_player_Y2', 'away_player_Y3', 'away_player_Y4', 'away_player_Y5',
-                          'away_player_Y6', 'away_player_Y7', 'away_player_Y8', 'away_player_Y9', 'away_player_Y10', 'away_player_Y11'], axis=1, inplace=True)
-
-        self.matchs.drop(['home_player_X1', 'home_player_X2', 'home_player_X3', 'home_player_X4', 'home_player_X5',
-                          'home_player_X6', 'home_player_X7', 'home_player_X8', 'home_player_X9', 'home_player_X10',
-                          'home_player_X11', 'away_player_X1', 'away_player_X2', 'away_player_X3', 'away_player_X4', 'away_player_X5',
-                          'away_player_X6', 'away_player_X7', 'away_player_X8', 'away_player_X9', 'away_player_X10', 'away_player_X11'], axis=1, inplace=True)
 
         # print(matchs['home_form'].value_counts())
         # print(matchs['away_form'].value_counts())
@@ -125,6 +121,11 @@ def create_player_overall_dict(player_attr):
     return ply_attr.to_dict()['overall_rating']
 
 
+def create_team_name_dict(teams):
+    tms = teams[['team_api_id', 'team_short_name']]
+    return tms.set_index('team_api_id').to_dict()['team_short_name']
+
+
 def test_key(ply_attr_dict, api_id, date):
     api_id = int(api_id)
     while True:
@@ -134,3 +135,16 @@ def test_key(ply_attr_dict, api_id, date):
             date = int(date)
             date -= 1
             date = str(date)
+
+
+# TEST
+
+matchsTrain = pd.read_csv('X_Train.csv')
+matchsTest = pd.read_csv('X_Test.csv')
+players = pd.read_csv('Player.csv')
+teams = pd.read_csv('Team.csv')
+team_attr = pd.read_csv('Team_Attributes.csv')
+player_attr = pd.read_csv('Player_Attributes.csv')
+
+
+matchs = Data_Engineering(matchsTrain, player_attr, teams).run()
