@@ -75,21 +75,56 @@ matchs.drop(['home_player_X1', 'home_player_X2', 'home_player_X3', 'home_player_
 # Cleaning the date (take only dd-mm-yyy)
 matchs['date'] = matchs['date'].apply(lambda x: x.split(' ')[0])
 
-ply_attr = player_attr[['player_api_id', 'overall_rating']]
-#ply_attr['date'] = ply_attr['date'].apply(lambda x: x.split(' ')[0])
+ply_attr = player_attr[['player_api_id', 'overall_rating', 'date']]
+ply_attr['date'] = ply_attr['date'].apply(lambda x: x.split('-')[0])
 #ply_attr['date_year'] = ply_attr['date'].apply(lambda x: x.split('-')[0])
 
-ply_attr = ply_attr.groupby(['player_api_id']).mean()
+ply_attr = ply_attr.groupby(
+    [ply_attr['player_api_id'], ply_attr['date']]).mean()
 
 # Replace id of players with their overall rating at the date of the match
 
 ply_attr_dict = ply_attr.to_dict()['overall_rating']
 
 
-#test_matchs = matchs.head().copy()
+def test_key(api_id, date):
+    api_id = int(api_id)
+    while True:
+        if((api_id, date) in ply_attr_dict):
+            return ply_attr_dict[(api_id, date)]
+        else:
+            date = int(date)
+            date -= 1
+            date = str(date)
+
 
 for i in range(1, 12):
     matchs['home_player_overall_'+str(i)] = matchs.apply(
-        lambda x: ply_attr_dict[x['home_player_'+str(i)]], axis=1)
+        lambda x: test_key(int(x['home_player_'+str(i)]), x['date'].split('-')[0]), axis=1)
     matchs['away_player_overall_'+str(i)] = matchs.apply(
-        lambda x: ply_attr_dict[x['away_player_'+str(i)]], axis=1)
+        lambda x: test_key(int(x['away_player_'+str(i)]), x['date'].split('-')[0]), axis=1)
+
+
+matchs['home_team_overall'] = matchs.select(
+    lambda col: col.startswith('home_player_overall_'), axis=1).mean(axis=1)
+matchs['away_team_overall'] = matchs.select(
+    lambda col: col.startswith('away_player_overall_'), axis=1).mean(axis=1)
+
+matchs.drop(matchs.select(
+    lambda col: col.startswith('home_player'), axis=1), axis=1, inplace=True)
+
+matchs.drop(matchs.select(
+    lambda col: col.startswith('away_player'), axis=1), axis=1, inplace=True)
+
+
+def get_best_team(home_team, away_team):
+    if(home_team > away_team):
+        return 1
+    if(home_team == away_team):
+        return 0
+    else:
+        return -1
+
+
+matchs['best_team'] = matchs.apply(lambda x: get_best_team(
+    x['home_team_overall'], x['away_team_overall']), axis=1)
