@@ -34,7 +34,7 @@ class Data_Cleaning:
     def __init__(self, matchs):
         self.matchs = matchs
 
-    def run_cleaning_data(self):
+    def run(self):
 
         # Récupérer toutes les features du type float64
         numerical_data = self.matchs.select_dtypes("float64")

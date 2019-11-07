@@ -8,7 +8,6 @@ class Data_Engineering:
         self.matchs = matchs
         self.ply_attr_dict = create_player_overall_dict(player_attr)
 
-        
     @staticmethod
     def add_labels(matchs):
         # Create labels
@@ -16,7 +15,7 @@ class Data_Engineering:
             row['home_team_goal'], row['away_team_goal']), axis=1)
         return matchs
 
-    def run_engineering_data(self):
+    def run(self):
             # Droping irrelevent columns
         self.matchs.drop(['country_id', 'league_id', 'match_api_id',
                           'home_team_api_id', 'away_team_api_id', 'Unnamed: 0'], axis=1, inplace=True)
@@ -95,6 +94,7 @@ def det_label(score1, score2):
         return -1
     else:
         return 1
+
 
 def create_formation(row, home):
     list_test = list()  # We need a list for Counter
