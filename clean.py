@@ -3,6 +3,7 @@ from collections import Counter
 
 matchs = pd.read_csv('X_Train.csv')
 players = pd.read_csv('Player.csv')
+XTest = pd.read_csv('X_Test.csv')
 # countries = pd.read_csv('Country.csv')
 # leagues = pd.read_csv('League.csv')
 teams = pd.read_csv('Team.csv')
@@ -128,3 +129,4 @@ def get_best_team(home_team, away_team):
 
 matchs['best_team'] = matchs.apply(lambda x: get_best_team(
     x['home_team_overall'], x['away_team_overall']), axis=1)
+
