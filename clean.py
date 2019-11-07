@@ -135,3 +135,107 @@ def engineering_data(matchs):
 
 matchsTrain = engineering_data(matchsTrain)
 matchsTest = engineering_data(matchsTest)
+
+
+###################################
+#        CLEANING DATA            #
+###################################   
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import Imputer,OrdinalEncoder
+from sklearn.preprocessing import LabelBinarizer,OneHotEncoder,MultiLabelBinarizer
+
+from sklearn.base import BaseEstimator, TransformerMixin
+class DataFrameSelector(BaseEstimator, TransformerMixin):
+    def __init__(self, attribute_names):
+        self.attribute_names = attribute_names
+    def fit(self, X, y=None):        
+        return self
+    def transform(self, X):
+        return X[self.attribute_names].values
+    
+from sklearn.base import TransformerMixin #gives fit_transform method for free
+class MyLabelBinarizer(TransformerMixin):
+    def __init__(self, *args, **kwargs):
+        self.encoder = LabelBinarizer(*args, **kwargs)
+    def fit(self, x, y=0):
+        self.encoder.fit(x)
+        return self
+    def transform(self, x, y=0):
+        return self.encoder.transform(x)
+     
+
+
+# Récupérer toutes les features du type float64
+numerical_data_train = matchsTrain.select_dtypes("float64")
+numerical_data_test = matchsTest.select_dtypes("float64")
+num_attribs_train = list(numerical_data_train)
+num_attribs_test = list(numerical_data_test)
+#Changer le type des saisons d'objets à categorique
+matchsTrain[['season']] = matchs[['season']].apply(lambda x: x.astype('category'))
+categorical_attrib = ['season']
+
+matchsTest[['season']] = matchs[['season']].apply(lambda x: x.astype('category'))
+categorical_attrib = ['season']
+#label
+label = matchs[['label']]
+
+
+
+# Utilisation de pipeline pour clean les data
+
+num_pipeline = Pipeline([
+            ('selector',DataFrameSelector(num_attribs)),
+            ('imputer',Imputer(strategy="median")),
+            ('min_max_scaler',MinMaxScaler()),
+            ])
+    
+
+
+categorical_pipeline = Pipeline([
+                ('selector',DataFrameSelector(categorical_attrib)),
+                 ('label_binazer',MyLabelBinarizer()),
+        ])
+
+from sklearn.pipeline  import FeatureUnion
+full_pipeline = FeatureUnion(transformer_list=[
+            ("num_pipeline",num_pipeline),
+            ("categorical_pipeline",categorical_pipeline)
+        ])
+    
+#data are clean here
+match_cleaned = full_pipeline.fit_transform(matchs)
+
+
+##### SPLIT DATA   #####µ
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+
+X_train, X_test, y_train, y_test = train_test_split(match_cleaned,label,test_size=0.26855,random_state = 5)
+
+
+#####  SGDSVM MODEL  ##### 
+from sklearn.linear_model import SGDClassifier
+
+rf = SGDClassifier(loss='hinge')
+
+
+rf.fit(X_train,y_train)
+
+predicted_values_SVM = rf.predict(X_test)
+
+print("score : ",rf.score(X_test,y_test))
+
+y_test2 = y_test.copy()
+match_soumission = pd.DataFrame(y_test2)
+match_soumission['prediction'] = predicted_values_SVM
+match_soumission.drop(columns='label',inplace=True)
+match_soumission.iloc[match_soumission.index == 16948]
+match_soumission.rename(columns={"prediction":"classes"},inplace=True)
+
+#match_soumission['classes'] = match_soumission['classes'].apply(lambda x: str(x)) 
+match_soumission.info()
+
+match_soumission.to_csv(r"C:\Users\Baudouin\Documents\IPL_BLOC_3\MACHINE_LEARNING\predictionProjet1.csv")
