@@ -137,6 +137,10 @@ matchsTrain = engineering_data(matchsTrain)
 matchsTest = engineering_data(matchsTest)
 
 
+label = matchsTrain[['label']]
+matchsTrain.drop(columns=['label','home_team_goal','away_team_goal'],inplace=True)
+
+
 ###################################
 #        CLEANING DATA            #
 ###################################   
@@ -164,78 +168,63 @@ class MyLabelBinarizer(TransformerMixin):
     def transform(self, x, y=0):
         return self.encoder.transform(x)
      
-
-
-# Récupérer toutes les features du type float64
-numerical_data_train = matchsTrain.select_dtypes("float64")
-numerical_data_test = matchsTest.select_dtypes("float64")
-num_attribs_train = list(numerical_data_train)
-num_attribs_test = list(numerical_data_test)
-#Changer le type des saisons d'objets à categorique
-matchsTrain[['season']] = matchs[['season']].apply(lambda x: x.astype('category'))
-categorical_attrib = ['season']
-
-matchsTest[['season']] = matchs[['season']].apply(lambda x: x.astype('category'))
-categorical_attrib = ['season']
 #label
-label = matchs[['label']]
 
 
+def clean_data(matchs):
 
-# Utilisation de pipeline pour clean les data
-
-num_pipeline = Pipeline([
-            ('selector',DataFrameSelector(num_attribs)),
-            ('imputer',Imputer(strategy="median")),
-            ('min_max_scaler',MinMaxScaler()),
+    # Récupérer toutes les features du type float64
+    numerical_data = matchs.select_dtypes("float64")
+    num_attribs = list(numerical_data)
+    #Changer le type des saisons d'objets à categorique
+    matchs[['season']] = matchs[['season']].apply(lambda x: x.astype('category'))
+    categorical_attrib = ['season']
+    # Utilisation de pipeline pour clean les data
+    
+    num_pipeline = Pipeline([
+                ('selector',DataFrameSelector(num_attribs)),
+                ('imputer',Imputer(strategy="median")),
+                ('min_max_scaler',MinMaxScaler()),
+                ])
+        
+    
+    
+    categorical_pipeline = Pipeline([
+                    ('selector',DataFrameSelector(categorical_attrib)),
+                     ('label_binazer',MyLabelBinarizer()),
             ])
     
-
-
-categorical_pipeline = Pipeline([
-                ('selector',DataFrameSelector(categorical_attrib)),
-                 ('label_binazer',MyLabelBinarizer()),
-        ])
-
-from sklearn.pipeline  import FeatureUnion
-full_pipeline = FeatureUnion(transformer_list=[
-            ("num_pipeline",num_pipeline),
-            ("categorical_pipeline",categorical_pipeline)
-        ])
+    from sklearn.pipeline  import FeatureUnion
+    full_pipeline = FeatureUnion(transformer_list=[
+                ("num_pipeline",num_pipeline),
+                ("categorical_pipeline",categorical_pipeline)
+            ])
     
-#data are clean here
-match_cleaned = full_pipeline.fit_transform(matchs)
+    #data are clean here
+    match_cleaned = full_pipeline.fit_transform(matchs)
+    return match_cleaned
 
 
-##### SPLIT DATA   #####µ
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
 
-
-X_train, X_test, y_train, y_test = train_test_split(match_cleaned,label,test_size=0.26855,random_state = 5)
+matchsTrain = clean_data(matchsTrain)
+matchsTest = clean_data(matchsTest)
 
 
 #####  SGDSVM MODEL  ##### 
+import numpy as np
 from sklearn.linear_model import SGDClassifier
 
 rf = SGDClassifier(loss='hinge')
 
+rf.fit(matchsTrain,label)
 
-rf.fit(X_train,y_train)
+predicted_values_SVM = rf.predict(matchsTest)
 
-predicted_values_SVM = rf.predict(X_test)
 
-print("score : ",rf.score(X_test,y_test))
-
-y_test2 = y_test.copy()
-match_soumission = pd.DataFrame(y_test2)
-match_soumission['prediction'] = predicted_values_SVM
-match_soumission.drop(columns='label',inplace=True)
-match_soumission.iloc[match_soumission.index == 16948]
-match_soumission.rename(columns={"prediction":"classes"},inplace=True)
+match_soumission = pd.DataFrame(predicted_values_SVM)
 
 #match_soumission['classes'] = match_soumission['classes'].apply(lambda x: str(x)) 
 match_soumission.info()
 
 match_soumission.to_csv(r"C:\Users\Baudouin\Documents\IPL_BLOC_3\MACHINE_LEARNING\predictionProjet1.csv")
+
