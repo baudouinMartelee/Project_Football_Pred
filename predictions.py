@@ -84,7 +84,7 @@ gs.fit(X_train,y_train.values.ravel())
 
 best_paramSGD = gs.best_params_
 
-
+#Sur RandomForest
 depths = np.arange(1, 21)
 num_leafs = [1, 5, 10, 20, 50, 100]
 params_grid = [{'max_depth':depths,'min_samples_leaf':num_leafs}]
@@ -95,12 +95,23 @@ gs2.fit(X_train,y_train.values.ravel())
 
 best_param_RF = gs2.best_params_
 
+#Sur LogisticRegression
+
+grid2 = {
+    'C': [0.00000001, 0.0000001,0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1,1],
+}
+
+gs3 = GridSearchCV(LogisticRegression(),param_grid=grid2)
+
+gs3.fit(X_train,y_train.values.ravel())
+
+best_param_Logistique = gs3.best_params_
 
 
 #####  Ensemble model  #####
 
 
-log_clf = LogisticRegression()
+log_clf = LogisticRegression(C=0.1)
 rnd_clf = RandomForestClassifier(max_depth=12,min_samples_leaf=50)
 sgd_clf = SGDClassifier(loss='hinge',alpha=0.0001,max_iter=1000)
 
