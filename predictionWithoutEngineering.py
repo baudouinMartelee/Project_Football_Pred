@@ -157,10 +157,11 @@ predicted_values_SVM = rf.predict(X_test)
 
 print("score : ",rf.score(X_test,y_test))
 
-#####  SVM MODEL  ##### 
-from sklearn.svm import SVC
+#####  SGDSVM MODEL  ##### 
+from sklearn.linear_model import SGDClassifier
 
-rf = SVC(gamma='scale')
+rf = SGDClassifier(loss='hinge')
+
 
 rf.fit(X_train,y_train)
 
@@ -168,6 +169,44 @@ predicted_values_SVM = rf.predict(X_test)
 
 print("score : ",rf.score(X_test,y_test))
 
+#####  SGDSVM MODEL AVEC GRIDSEARCH ##### 
+from sklearn.model_selection import GridSearchCV
+
+gamma = [0.1,0.5,1,3,5,8,10,25,50,100]
+c = [0.1,0.5,1,3,5,8,10,25,50,100]
+params_grid = [{'gamma':gamma,'C':c}]
+
+gs = GridSearchCV(SVC(),param_grid=params_grid)
+
+gs.fit(X_train,y_train.values.ravel())
+
+best_param = gs.best_params_
+
+
+#####  SVM MODEL  ##### 
+from sklearn.svm import SVC
+
+rf = SVC(kernel='rbf')
+
+
+rf.fit(X_train,y_train)
+
+predicted_values_SVM = rf.predict(X_test)
+
+print("score : ",rf.score(X_test,y_test))
+
+#####  SVM MODEL  AVEC GRIDSEARCH ##### 
+from sklearn.model_selection import GridSearchCV
+
+gamma = [0.1,0.5,1,3,5,8,10,25,50,100]
+c = [0.1,0.5,1,3,5,8,10,25,50,100]
+params_grid = [{'gamma':gamma,'C':c}]
+
+gs = GridSearchCV(SVC(),param_grid=params_grid)
+
+gs.fit(X_train,y_train.values.ravel())
+
+best_param = gs.best_params_
 
 
 
@@ -187,7 +226,7 @@ def display_scores(scores):
 display_scores(rf_rmse_scores)
 
 
-
+matchs_export = matchs
 
 
 
