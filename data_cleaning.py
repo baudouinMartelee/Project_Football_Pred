@@ -20,7 +20,7 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
 
 class MyLabelBinarizer(TransformerMixin):
     def __init__(self, *args, **kwargs):
-        self.encoder = LabelBinarizer(*args, **kwargs)
+        self.encoder = MultiLabelBinarizer(*args, **kwargs)
 
     def fit(self, x, y=0):
         self.encoder.fit(x)
@@ -40,9 +40,11 @@ class Data_Cleaning:
         numerical_data = self.matchs.select_dtypes("float64")
         num_attribs = list(numerical_data)
         # Changer le type des saisons d'objets à categorique
-        self.matchs[['season']] = self.matchs[['season']].apply(
+        
+        categorical_attrib = ['season']#,'home_team_name','away_team_name','home_form','away_form']
+        self.matchs[categorical_attrib] = self.matchs[categorical_attrib].apply(
             lambda x: x.astype('category'))
-        categorical_attrib = ['season']
+       
         # Utilisation de pipeline pour clean les data
 
         num_pipeline = Pipeline([

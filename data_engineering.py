@@ -1,15 +1,15 @@
 import pandas as pd
 from collections import Counter
-pd.options.mode.chained_assignment = None  # default='warn'
-
 
 class Data_Engineering:
 
-    def __init__(self, matchs, player_attr, teams):
+    def __init__(self, matchs, player_attr, teams, teams_attr):
         self.matchs = matchs
         self.ply_attr_dict = create_player_overall_dict(player_attr)
         self.teams_name_dict = create_team_name_dict(teams)
-
+        self.teams_shooting_dict = create_team_attr_chance_dict(teams_attr,'chanceCreationShooting')
+        self.teams_def_dict = create_team_attr_chance_dict(teams_attr,'defenceAggression')
+    
     @staticmethod
     def add_labels(matchs):
         # Create labels
@@ -18,12 +18,11 @@ class Data_Engineering:
         return matchs
 
     def run(self):
-
-        print('Engineering features...')
         # Droping irrelevent columns
-        self.matchs.drop(['country_id', 'league_id',
+        self.matchs.drop(['country_id', 'league_id', 
                           'match_api_id', 'Unnamed: 0'], axis=1, inplace=True)
 
+        print("Putting corresponding teams names...")
         self.matchs['home_team_name'] = self.matchs.apply(
             lambda x: self.teams_name_dict[x['home_team_api_id']], axis=1)
         self.matchs['away_team_name'] = self.matchs.apply(
@@ -38,7 +37,7 @@ class Data_Engineering:
             lambda x: x.fillna(x.value_counts().index[0]))
 
         # Create a formation with the Y coordinates
-
+        print("Creating formations...")
         self.matchs['home_form'] = self.matchs.apply(
             lambda x: create_formation(x, True), axis=1)
         self.matchs['away_form'] = self.matchs.apply(
@@ -51,6 +50,7 @@ class Data_Engineering:
         self.matchs['date'] = self.matchs['date'].apply(
             lambda x: x.split(' ')[0])
 
+        print('Putting overall teams ratings...')
         for i in range(1, 12):
             self.matchs['home_player_overall_'+str(i)] = self.matchs.apply(
                 lambda x: test_key(self.ply_attr_dict, int(x['home_player_'+str(i)]), x['date'].split('-')[0]), axis=1)
@@ -71,7 +71,18 @@ class Data_Engineering:
         self.matchs['best_team'] = self.matchs.apply(lambda x: get_best_team(
             x['home_team_overall'], x['away_team_overall']), axis=1)
 
+        print("Putting shooting chances and defence agression...")
+        self.matchs['home_shooting_chances'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['home_team_api_id'],x['date'].split('-')[0]), axis=1)    
+        self.matchs['away_shooting_chances'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['away_team_api_id'],x['date'].split('-')[0]), axis=1)   
+
+        self.matchs['home_def_agr'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['home_team_api_id'],x['date'].split('-')[0]), axis=1)    
+        self.matchs['away_def_agr'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['away_team_api_id'],x['date'].split('-')[0]), axis=1)    
+
+        self.matchs.drop(['home_team_api_id','away_team_api_id'], axis=1, inplace=True)    
+
         return self.matchs
+
+
 
 # UTILS FUNCTIONS
 
@@ -96,18 +107,17 @@ def det_label(score1, score2):
 
 
 def create_formation(row, home):
-    list_test = list()  # We need a list for Counter
-    # print(row)
-    for i in range(2, 12):  # use don't care of the keeper
-        if(home):
-            list_test.append(row['home_player_Y'+str(i)])
-        else:
-            list_test.append(row['away_player_Y'+str(i)])
+    list_form = list()  # We need a list for Counter
+    if(home):
+        list_form = row.loc[row.index.str.startswith(
+            'home_player_Y')].tolist()[1:] #We don't take the goalkeeper
+    else:
+        list_form = row.loc[row.index.str.startswith(
+            'away_player_Y')].tolist()[1:]
     # Will create a dict with the occurences of the players's positions
-    couter = Counter(list_test)
-    # print((list(couter.values())))
+    couter = Counter(list_form)
+    #concatenates the values in a string like : 442
     form = ''.join((str(e) for e in list(couter.values())))
-    # print(form)
     return form
 
 
@@ -123,31 +133,32 @@ def create_player_overall_dict(player_attr):
 
     return ply_attr.to_dict()['overall_rating']
 
+def create_team_attr_chance_dict(teams_attr, shootingOrDef):
+    tms_attr = teams_attr[['team_api_id', 'date','chanceCreationShooting','defenceAggression']]
+    tms_attr['date'] = tms_attr['date'].apply(lambda x: x.split('-')[0])
+    tms_attr = tms_attr.groupby([tms_attr['team_api_id'],tms_attr['date']]).mean()
+    return tms_attr.to_dict()[shootingOrDef]
 
 def create_team_name_dict(teams):
     tms = teams[['team_api_id', 'team_short_name']]
     return tms.set_index('team_api_id').to_dict()['team_short_name']
 
 
-def test_key(ply_attr_dict, api_id, date):
+def test_key(attr_dict, api_id, date):
     api_id = int(api_id)
-    while True:
-        if((api_id, date) in ply_attr_dict):
-            return ply_attr_dict[(api_id, date)]
+    date=int(date)
+    while date>2000:
+        if((api_id, str(date)) in attr_dict):
+            return attr_dict[(api_id, str(date))]
         else:
-            date = int(date)
             date -= 1
-            date = str(date)
+    return 0
 
 
-# TEST
-
-matchsTrain = pd.read_csv('X_Train.csv')
-matchsTest = pd.read_csv('X_Test.csv')
-players = pd.read_csv('Player.csv')
-teams = pd.read_csv('Team.csv')
-team_attr = pd.read_csv('Team_Attributes.csv')
-player_attr = pd.read_csv('Player_Attributes.csv')
-
-
-matchs = Data_Engineering(matchsTrain, player_attr, teams).run()
+#TEST"""
+"""import pandas as pd
+teams_attr = pd.read_csv('Team_Attributes.csv')
+tms_attr = teams_attr[['team_api_id', 'date','chanceCreationShooting','defenceAggression']]
+tms_attr['date'] = tms_attr['date'].apply(lambda x: x.split('-')[0])
+dico = tms_attr.set_index(['team_api_id','date']).to_dict()['chanceCreationShooting']
+print(dico[9987,'2012'])"""
