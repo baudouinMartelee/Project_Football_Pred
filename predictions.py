@@ -2,9 +2,13 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import SGDClassifier
+from sklearn.model_selection import GridSearchCV
 from data_engineering import Data_Engineering
 from data_cleaning import Data_Cleaning
 
+from	sklearn.ensemble	import	RandomForestClassifier 
+from	sklearn.ensemble	import	VotingClassifier 
+from	sklearn.linear_model import	LogisticRegression 
 
 ##################################
 #        GETTING THE DATA        #
@@ -47,8 +51,94 @@ matchsTest = Data_Cleaning(matchsTest).run()
 ###################################
 
 
+##### SPLIT DATA   #####µ
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+
+X_train, X_test, y_train, y_test = train_test_split(matchsTrain,label,random_state = 5)
+
+
+#####  SGDSVM MODEL ON TRAINING SET #####
+
+rf = SGDClassifier(loss='hinge')
+
+rf.fit(X_train,y_train)
+
+predicted_values_SVM = rf.predict(X_test)
+
+print("score : ",rf.score(X_test,y_test))
+
+#####  SGDSVM MODEL ON TRAINING SET WITH GRIDSEARCH #####
+
+#Sur SGDClassifier
+
+grid = {
+    'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.03,0.1,0.3, 0.5, 1], # learning rate
+    'max_iter': [1000], # number of epochs
+    'loss': ['hinge'] # logistic regression,
+}
+
+gs = GridSearchCV(SGDClassifier(),param_grid=grid)
+
+gs.fit(X_train,y_train.values.ravel())
+
+best_paramSGD = gs.best_params_
+
+#Sur RandomForest
+depths = np.arange(1, 21)
+num_leafs = [1, 5, 10, 20, 50, 100]
+params_grid = [{'max_depth':depths,'min_samples_leaf':num_leafs}]
+
+gs2 = GridSearchCV(RandomForestClassifier(),param_grid=params_grid)
+
+gs2.fit(X_train,y_train.values.ravel())
+
+best_param_RF = gs2.best_params_
+
+#Sur LogisticRegression
+
+grid2 = {
+    'C': [0.00000001, 0.0000001,0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1,1],
+}
+
+gs3 = GridSearchCV(LogisticRegression(),param_grid=grid2)
+
+gs3.fit(X_train,y_train.values.ravel())
+
+best_param_Logistique = gs3.best_params_
+
+
+#####  Ensemble model  #####
+
+
+log_clf = LogisticRegression(C=0.1)
+rnd_clf = RandomForestClassifier(max_depth=12,min_samples_leaf=50)
+sgd_clf = SGDClassifier(loss='hinge',alpha=0.0001,max_iter=1000)
+
+voting_clf = VotingClassifier(
+        estimators=[('lr',log_clf),('rf',rnd_clf),('sgd',sgd_clf)],voting='hard')
+
+voting_clf.fit(X_train,y_train)
+
+predicted_values_SVM = voting_clf.predict(X_test)
+
+print("score : ",voting_clf.score(X_test,y_test))
+
+
+
+
+###################################
+#     PREDICTIONS ON TEST SET     #
+###################################
+
+
+
+=======
 X_train, X_test, y_train, y_test = train_test_split(
     matchsTrain, label, random_state=5)
+>>>>>>> refs/remotes/origin/master
 
 #####  SGDSVM MODEL  #####
 
@@ -65,8 +155,7 @@ print("score : ", rf.score(X_test, y_test))
 match_soumission = pd.DataFrame(predicted_values_SVM)
 
 #match_soumission['classes'] = match_soumission['classes'].apply(lambda x: str(x))
-match_soumission.info()
+#match_soumission.info()
 
-match_soumission.to_csv(
-    r"./predictionProjet1.csv")
+#match_soumission.to_csv(r"./predictionProjet1.csv")
 """
