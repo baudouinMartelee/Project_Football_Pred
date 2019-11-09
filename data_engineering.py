@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from collections import Counter
 
 class Data_Engineering:
@@ -7,8 +8,8 @@ class Data_Engineering:
         self.matchs = matchs
         self.ply_attr_dict = create_player_overall_dict(player_attr)
         self.teams_name_dict = create_team_name_dict(teams)
-        self.teams_shooting_dict = create_team_attr_chance_dict(teams_attr,'chanceCreationShooting')
-        self.teams_def_dict = create_team_attr_chance_dict(teams_attr,'defenceAggression')
+        self.teams_shooting_dict = create_team_attr_chance_dict(teams_attr,'buildUpPlayPassing')
+        self.teams_def_dict = create_team_attr_chance_dict(teams_attr,'defencePressure')
     
     @staticmethod
     def add_labels(matchs):
@@ -62,21 +63,24 @@ class Data_Engineering:
         self.matchs['away_team_overall'] = self.matchs.select(
             lambda col: col.startswith('away_player_overall_'), axis=1).mean(axis=1)
 
+        self.matchs['home_team_overall']= self.matchs['home_team_overall']/99
+        self.matchs['away_team_overall'] = self.matchs['away_team_overall']/99
+        
         self.matchs.drop(self.matchs.select(
             lambda col: col.startswith('home_player'), axis=1), axis=1, inplace=True)
 
         self.matchs.drop(self.matchs.select(
             lambda col: col.startswith('away_player'), axis=1), axis=1, inplace=True)
 
-        self.matchs['best_team'] = self.matchs.apply(lambda x: get_best_team(
-            x['home_team_overall'], x['away_team_overall']), axis=1)
+        """self.matchs['best_team'] = self.matchs.apply(lambda x: get_best_team(
+            x['home_team_overall'], x['away_team_overall']), axis=1)"""
 
         print("Putting shooting chances and defence agression...")
-        self.matchs['home_shooting_chances'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['home_team_api_id'],x['date'].split('-')[0]), axis=1)    
-        self.matchs['away_shooting_chances'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['away_team_api_id'],x['date'].split('-')[0]), axis=1)   
+        self.matchs['home_build_up'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['home_team_api_id'],x['date'].split('-')[0]), axis=1)    
+        self.matchs['away_build_up'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['away_team_api_id'],x['date'].split('-')[0]), axis=1)   
 
-        self.matchs['home_def_agr'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['home_team_api_id'],x['date'].split('-')[0]), axis=1)    
-        self.matchs['away_def_agr'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['away_team_api_id'],x['date'].split('-')[0]), axis=1)    
+        self.matchs['home_def_press'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['home_team_api_id'],x['date'].split('-')[0]), axis=1)    
+        self.matchs['away_def_press'] = self.matchs.apply(lambda x: test_key(self.teams_def_dict,x['away_team_api_id'],x['date'].split('-')[0]), axis=1)    
 
         self.matchs.drop(['home_team_api_id','away_team_api_id'], axis=1, inplace=True)    
 
@@ -133,11 +137,11 @@ def create_player_overall_dict(player_attr):
 
     return ply_attr.to_dict()['overall_rating']
 
-def create_team_attr_chance_dict(teams_attr, shootingOrDef):
-    tms_attr = teams_attr[['team_api_id', 'date','chanceCreationShooting','defenceAggression']]
+def create_team_attr_chance_dict(teams_attr,key):
+    tms_attr = teams_attr[['team_api_id', 'date','defencePressure','buildUpPlayPassing']]
     tms_attr['date'] = tms_attr['date'].apply(lambda x: x.split('-')[0])
     tms_attr = tms_attr.groupby([tms_attr['team_api_id'],tms_attr['date']]).mean()
-    return tms_attr.to_dict()[shootingOrDef]
+    return tms_attr.to_dict()[key]
 
 def create_team_name_dict(teams):
     tms = teams[['team_api_id', 'team_short_name']]
@@ -152,13 +156,20 @@ def test_key(attr_dict, api_id, date):
             return attr_dict[(api_id, str(date))]
         else:
             date -= 1
-    return 0
+    return np.nan
 
 
 #TEST"""
 """import pandas as pd
-teams_attr = pd.read_csv('Team_Attributes.csv')
-tms_attr = teams_attr[['team_api_id', 'date','chanceCreationShooting','defenceAggression']]
-tms_attr['date'] = tms_attr['date'].apply(lambda x: x.split('-')[0])
-dico = tms_attr.set_index(['team_api_id','date']).to_dict()['chanceCreationShooting']
-print(dico[9987,'2012'])"""
+matchsTrain = pd.read_csv('X_Train.csv')
+matchsTest = pd.read_csv('X_Test.csv')
+players = pd.read_csv('Player.csv')
+teams = pd.read_csv('Team.csv')
+team_attr = pd.read_csv('Team_Attributes.csv')
+player_attr = pd.read_csv('Player_Attributes.csv')
+
+matchsTrain['label'] = matchsTrain.apply(lambda row: det_label(
+            row['home_team_goal'], row['away_team_goal']), axis=1)
+mergedDf = matchsTrain.merge(team_attr, left_on='home_team_api_id', right_on='team_api_id')
+
+mergedDf.corrwith(mergedDf['label'])"""
