@@ -1,4 +1,3 @@
-import category_encoders as ce
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
@@ -87,6 +86,11 @@ class Data_Engineering:
         self.matchs['home_team_potential'] = self.matchs['home_team_potential']/99
         self.matchs['away_team_potential'] = self.matchs['away_team_potential']/99
 
+        self.matchs['home_gk_overall'] = self.matchs.apply(
+            lambda x: test_key(self.ply_attr_overall_dict, int(x['home_player_1']), x['date'].split('-')[0]), axis=1)
+        self.matchs['away_gk_overall'] = self.matchs.apply(
+            lambda x: test_key(self.ply_attr_overall_dict, int(x['away_player_1']), x['date'].split('-')[0]), axis=1)
+
         self.matchs.drop(self.matchs.select(
             lambda col: col.startswith('home_player'), axis=1), axis=1, inplace=True)
 
@@ -99,20 +103,22 @@ class Data_Engineering:
         self.matchs['best_team_pot'] = self.matchs.apply(lambda x: get_best_team(
             x['home_team_potential'], x['away_team_potential']), axis=1)
 
+        self.matchs['best_team_gk'] = self.matchs.apply(lambda x: get_best_team(
+            x['home_gk_overall'], x['away_gk_overall']), axis=1)
+
         print("Putting buildUp and defence press...")
         self.matchs['home_build_up'] = self.matchs.apply(lambda x: test_key(
-            self.teams_def_dict, x['home_team_api_id'], x['date'].split('-')[0]), axis=1)
+            self.teams_def_dict, x['home_team_api_id'], x['date'].split('-')[0])/99, axis=1)
         self.matchs['away_build_up'] = self.matchs.apply(lambda x: test_key(
-            self.teams_def_dict, x['away_team_api_id'], x['date'].split('-')[0]), axis=1)
+            self.teams_def_dict, x['away_team_api_id'], x['date'].split('-')[0])/99, axis=1)
 
         self.matchs['home_def_press'] = self.matchs.apply(lambda x: test_key(
-            self.teams_def_dict, x['home_team_api_id'], x['date'].split('-')[0]), axis=1)
+            self.teams_def_dict, x['home_team_api_id'], x['date'].split('-')[0])/99, axis=1)
         self.matchs['away_def_press'] = self.matchs.apply(lambda x: test_key(
-            self.teams_def_dict, x['away_team_api_id'], x['date'].split('-')[0]), axis=1)
+            self.teams_def_dict, x['away_team_api_id'], x['date'].split('-')[0])/99, axis=1)
 
         self.matchs.drop(
             ['home_team_api_id', 'away_team_api_id'], axis=1, inplace=True)
-
         return self.matchs
 
 
@@ -206,8 +212,8 @@ def test_key(attr_dict, api_id, date):
     return np.nan
 
 
-# TEST"""
 """
+
 matchsTrain = pd.read_csv('X_Train.csv')
 matchsTest = pd.read_csv('X_Test.csv')
 players = pd.read_csv('Player.csv')
@@ -217,6 +223,9 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 
 matchsTrain['label'] = matchsTrain.apply(lambda row: det_label(
     row['home_team_goal'], row['away_team_goal']), axis=1)
+
+df = Data_Engineering(matchsTrain, player_attr, teams, team_attr).run()
+correlation = df.corrwith(df['label'])
 
 # Encoding categorical
 df = Data_Engineering(matchsTrain, player_attr, teams, team_attr).run()

@@ -40,11 +40,12 @@ class Data_Cleaning:
         numerical_data = self.matchs.select_dtypes("float64")
         num_attribs = list(numerical_data)
         # Changer le type des saisons d'objets à categorique
-        
-        categorical_attrib = ['season']#,'home_team_name','away_team_name','home_form','away_form']
+
+        # ,'home_team_name','away_team_name','home_form','away_form']
+        categorical_attrib = ['season']
         self.matchs[categorical_attrib] = self.matchs[categorical_attrib].apply(
             lambda x: x.astype('category'))
-       
+
         # Utilisation de pipeline pour clean les data
 
         num_pipeline = Pipeline([
@@ -61,7 +62,7 @@ class Data_Cleaning:
         from sklearn.pipeline import FeatureUnion
         full_pipeline = FeatureUnion(transformer_list=[
             ("num_pipeline", num_pipeline),
-            ("categorical_pipeline", categorical_pipeline)
+            #("categorical_pipeline", categorical_pipeline)
         ])
 
         # data are clean here
