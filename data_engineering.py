@@ -1,4 +1,4 @@
-import category_encoders as ce
+
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
@@ -207,7 +207,7 @@ def test_key(attr_dict, api_id, date):
 
 
 # TEST"""
-"""
+
 matchsTrain = pd.read_csv('X_Train.csv')
 matchsTest = pd.read_csv('X_Test.csv')
 players = pd.read_csv('Player.csv')
@@ -268,4 +268,4 @@ for i in range(2, 12):
     mergedDf = mergedDf.merge(
         player_attr_away, left_on='away_player_'+str(i), right_index=True)
 
-correlation = mergedDf.corrwith(mergedDf['label'])"""
+correlation = mergedDf.corrwith(mergedDf['label'])
