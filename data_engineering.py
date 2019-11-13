@@ -6,7 +6,7 @@ from collections import Counter
 
 class Data_Engineering:
 
-    def __init__(self, matchs, player_attr, teams, teams_attr):
+    def __init__(self, matchs, player_attr, teams, teams_attr, matchsTrain=None):
         self.matchs = matchs
         self.ply_attr_overall_dict = create_player_overall_dict(player_attr)
         self.ply_attr_pot_dict = create_player_pot_dict(player_attr)
@@ -15,6 +15,12 @@ class Data_Engineering:
             teams_attr, 'buildUpPlayPassing')
         self.teams_def_dict = create_team_attr_chance_dict(
             teams_attr, 'defencePressure')
+        if(matchsTrain == None):
+            self.teams_home_win_dict = create_home_team_win(matchs)
+            self.teams_away_win_dict = create_away_team_win(matchs)
+        else:
+            self.teams_home_win_dict = create_home_team_win(matchsTrain)
+            self.teams_away_win_dict = create_away_team_win(matchsTrain)
 
     @staticmethod
     def add_labels(matchs):
@@ -117,6 +123,10 @@ class Data_Engineering:
         self.matchs['away_def_press'] = self.matchs.apply(lambda x: test_key(
             self.teams_def_dict, x['away_team_api_id'], x['date'].split('-')[0])/99, axis=1)
 
+        self.matchs['home_win_rate'] = self.matchs.apply(
+            lambda x: self.teams_home_win_dict[(x['home_team_api_id'], x['date'].split('-')[0])], axis=1)
+        self.matchs['away_win_rate'] = self.matchs.apply(
+            lambda x: self.teams_away_win_dict[(x['away_team_api_id'], x['date'].split('-')[0])], axis=1)
         self.matchs.drop(
             ['home_team_api_id', 'away_team_api_id'], axis=1, inplace=True)
         return self.matchs
@@ -201,6 +211,45 @@ def create_team_name_dict(teams):
     return tms.set_index('team_api_id').to_dict()['team_short_name']
 
 
+"""if(home_away == 'home'):
+        tms = matchs[['home_team_api_id', 'date', 'label']]
+        tms['date'] = tms['date'].apply(lambda x: x.split('-')[0])
+        tms = tms[(tms['home_team_api_id'] == team_api)
+                  & (tms['date'] == date)]
+        if(tms.shape[0] == 0):
+            return 0
+        return tms[tms['label'] == 1].shape[0] / tms.shape[0]
+    else:
+        tms = matchs[['away_team_api_id', 'date', 'label']]
+        tms['date'] = tms['date'].apply(lambda x: x.split('-')[0])
+        tms = tms[(tms['away_team_api_id']) ==
+                  team_api & (tms['date'] == date)]
+
+        if(tms.shape[0] == 0):
+            return 0
+        return tms[tms['label'] == -1].shape[0] / tms.shape[0]"""
+
+
+def create_home_team_win(matchs):
+    tms = matchs[['home_team_api_id', 'date', 'label']]
+    tms['date'] = tms['date'].apply(lambda x: x.split('-')[0])
+    tms['label'] = tms.apply(lambda row: 0 if row['label']
+                             != 1 else row['label'], axis=1)
+    tms = tms.groupby([tms['home_team_api_id'], tms['date']]
+                      ).agg({'label': 'mean'}).to_dict()['label']
+    return tms
+
+
+def create_away_team_win(matchs):
+    tms = matchs[['away_team_api_id', 'date', 'label']]
+    tms['date'] = tms['date'].apply(lambda x: x.split('-')[0])
+    tms['label'] = tms.apply(lambda row: 0 if row['label']
+                             != -1 else 1, axis=1)
+    tms = tms.groupby([tms['away_team_api_id'], tms['date']]
+                      ).agg({'label': 'mean'}).to_dict()['label']
+    return tms
+
+
 def test_key(attr_dict, api_id, date):
     api_id = int(api_id)
     date = int(date)
@@ -209,11 +258,10 @@ def test_key(attr_dict, api_id, date):
             return attr_dict[(api_id, str(date))]
         else:
             date -= 1
-    return np.nan
+    return 0
 
 
 """
-
 matchsTrain = pd.read_csv('X_Train.csv')
 matchsTest = pd.read_csv('X_Test.csv')
 players = pd.read_csv('Player.csv')
@@ -226,6 +274,8 @@ matchsTrain['label'] = matchsTrain.apply(lambda row: det_label(
 
 df = Data_Engineering(matchsTrain, player_attr, teams, team_attr).run()
 correlation = df.corrwith(df['label'])
+
+
 
 # Encoding categorical
 df = Data_Engineering(matchsTrain, player_attr, teams, team_attr).run()
@@ -262,7 +312,7 @@ player_attr_away['player_api_id_away'] = player_attr_away.index
 
 
 matchsTrain = matchsTrain.select_dtypes(include=['float64', 'int64'])
-#matchsTrain = matchsTrain.head(1000)
+# matchsTrain = matchsTrain.head(1000)
 
 mergedDf = matchsTrain.merge(
     player_attr_home, left_on='home_player_1', right_index=True)
