@@ -1,3 +1,4 @@
+
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
@@ -327,4 +328,4 @@ for i in range(2, 12):
     mergedDf = mergedDf.merge(
         player_attr_away, left_on='away_player_'+str(i), right_index=True)
 
-correlation = mergedDf.corrwith(mergedDf['label'])"""
+correlation = mergedDf.corrwith(mergedDf['label'])

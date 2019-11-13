@@ -64,7 +64,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 
 #####  SGDSVM MODEL ON TRAINING SET #####
-
+"""
 rf = SGDClassifier(loss='hinge')
 
 rf.fit(X_train, y_train)
@@ -72,7 +72,7 @@ rf.fit(X_train, y_train)
 predicted_values_SVM = rf.predict(X_test)
 
 print("score SGDSVM MODEL : ", rf.score(X_test, y_test))
-
+"""
 #####  SGDSVM MODEL ON TRAINING SET WITH GRIDSEARCH #####
 
 # Sur SGDClassifier
@@ -152,12 +152,24 @@ rf.fit(X_train, y_train)
 predicted_values_SVM = rf.predict(X_test)
 
 print("score : ", rf.score(X_test, y_test))
-
-
-match_soumission = pd.DataFrame(predicted_values_SVM)
-
-#match_soumission['classes'] = match_soumission['classes'].apply(lambda x: str(x))
-#match_soumission.info()
-
-#match_soumission.to_csv(r"./predictionProjet1.csv")
 """
+
+log_clf = LogisticRegression(C=best_param_Logistique['C'])
+rnd_clf = RandomForestClassifier(max_depth=best_param_RF['max_depth'], min_samples_leaf=best_param_RF['min_samples_leaf'])
+sgd_clf = SGDClassifier(loss=best_paramSGD['loss'], alpha=best_paramSGD['alpha'], max_iter=best_paramSGD['max_iter'])
+
+voting_clf = VotingClassifier(
+    estimators=[('lr', log_clf), ('rf', rnd_clf), ('sgd', sgd_clf)], voting='hard')
+
+voting_clf.fit(X_train, y_train)
+
+predicted_values_Ensemble = voting_clf.predict(matchsTest)
+
+#print("score Ensemble Model: ", voting_clf.score(X_test, y_test))
+
+match_soumission = pd.DataFrame(predicted_values_Ensemble)
+
+match_soumission.info()
+
+match_soumission.to_csv(r"./predictionProjet2.csv")
+
