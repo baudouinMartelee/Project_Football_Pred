@@ -19,8 +19,11 @@ from sklearn.multiclass import OneVsRestClassifier
 #from xgboost import XGBClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import RidgeClassifier
+from sklearn.ensemble import BaggingClassifier
 from sklearn.svm import SVC
-from sklearn.svm import SVC
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 import warnings
 from sklearn.decomposition import PCA
 warnings.simplefilter("ignore")
@@ -32,8 +35,6 @@ warnings.simplefilter("ignore")
 matchsTrain = pd.read_csv('matchsTrainFinal.csv')
 matchsTest = pd.read_csv('X_Test.csv')
 players = pd.read_csv('Player.csv')
-# countries = pd.read_csv('Country.csv')
-# leagues = pd.read_csv('League.csv')
 teams = pd.read_csv('Team.csv')
 team_attr = pd.read_csv('Team_Attributes.csv')
 player_attr = pd.read_csv('Player_Attributes.csv')
@@ -49,6 +50,9 @@ matchsTrain = Data_Engineering.add_labels(matchsTrain)
 matchsTrain = Data_Engineering(
     matchsTrain, player_attr, teams, team_attr).run()
 
+# matchsTrain.to_csv(r'./matchsTrainFinal.csv')
+correlation = matchsTrain.corrwith(matchsTrain['label'])
+
 print("*******Data Engineering for the Test Set*******")
 matchsTest = Data_Engineering(
     matchsTest, player_attr, teams, team_attr, matchsTrain).run()
@@ -62,10 +66,11 @@ matchsTrain.drop(columns=['label', 'home_team_goal',
 #        CLEANING DATA            #
 ###################################
 print("*******Data Cleaning for the Train Set*******")
-matchsTrain = Data_Cleaning(matchsTrain).run()
+matchsTrainCleaned = Data_Cleaning(matchsTrain).run()
 print("*******Data Cleaning for the Test Set*******")
-#matchsTest = Data_Cleaning(matchsTest).run()
+# matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
+# PCA
 
 
 pca = PCA(n_components=30)
@@ -103,54 +108,64 @@ X_train, X_test, y_train, y_test = train_test_split(
     'SVM': SVC(),
     'XGBClassifier': XGBClassifier(),
     'SGDClassifier': SGDClassifier(),
-    'KNN': KNeighborsClassifier() ko"""
+    'KNN': KNeighborsClassifier(),
+    'RidgeClassifier' : RidgeClassifier(),
+    'BaggingClassifier' : BaggingClassifier(RandomForestClassifier()),
+    'LogisticRegression' : LogisticRegression(solver='lbfgs', multi_class='multinomial',random_state=1)"""
+
+
+"""TEST 0.5238
+'LogisticRegression': LogisticRegression(multi_class='multinomial', random_state=1),
+    'RandomForestClassifier': RandomForestClassifier(class_weight = 'balanced'),
+    'SGDClassifier': SGDClassifier(),
+    'SVM': SVC(),
+    'RandomForestClassifier': {
+        'n_estimators': [50, 75, 100],
+        'max_depth': [40, 50, 60, 70],
+        'min_samples_leaf': [25, 30, 35, 40],
+        'max_features': ['sqrt', 'log2', 'auto'],
+        'min_samples_split': [2, 5, 10]
+    """
 
 
 models = {
-       
-      #'LogisticRegression': LogisticRegression(),
-      'RandomForestClassifier': RandomForestClassifier(),
-      'SGDClassifier': SGDClassifier(),
-      #'GradientBoostingClassifier': GradientBoostingClassifier(),
-     #'NB': GaussianNB()
-     #'OneVsRestClassifier': OneVsRestClassifier(RandomForestClassifier())
-     #'AdaBoostClassifier': AdaBoostClassifier()
+    'LogisticRegression': LogisticRegression(multi_class='multinomial', random_state=1),
+    'RandomForestClassifier': RandomForestClassifier(),
+    'SGDClassifier': SGDClassifier(),
+    'SVM': SVC(),
 }
 
 params = {
-    'OneVsRestClassifier':{
-            'estimator__n_estimators': [50,75],
-            'estimator__max_depth': [5,7,10,15,20],
-            'estimator__min_samples_leaf': [30,40,50],
-            'estimator__max_features': ['auto'],
-            'estimator__min_samples_split': [2, 5, 10]
-            },
-    'AdaBoostClassifier': {
-        'n_estimators': [1, 10, 100, 1000],
+    'RidgeClassifier': {},
+    'BaggingClassifier': {
+        'n_estimators': [10, 100, 1000],
         'base_estimator__max_depth': [40, 50, 60, 100],
         'base_estimator__min_samples_leaf': [50],
         'base_estimator__max_features': ['sqrt', 'log2'],
         'base_estimator__min_samples_split': [2, 5, 10],
         'base_estimator__n_estimators': [100],
         'random_state': [1]},
+    'AdaBoostClassifier': {
+        'n_estimators': [10, 100, 1000],
+        'learning_rate': np.linspace(0.5, 2, 5),
+        'random_state': [1]},
     'XGBClassifier': {
         'objective': ['multi:softprob'],
-        'max_depth': np.arange(5, 21),
+        'max_depth': [5, 10, 15, 20],
         'n_estimators': [100, 200, 300, 400, 500],
         'learning_rate': [0.0001, 0.001, 0.01, 0.05, 0.1]},
     'RandomForestClassifier': {
-
-        'n_estimators': [100],
-        'max_depth': [40, 50, 60, 100],
-        'min_samples_leaf': [50],
-        'max_features': ['sqrt', 'log2'],
-        'min_samples_split': [2, 5, 10],
-        'random_state': [1]},
+        'n_estimators': [50, 75, 100],
+        'max_depth': [50, 60, 70, 100],
+        'min_samples_leaf': [30, 40, 50, 60, 70],
+        'max_features': ['sqrt', 'log2', 'auto'],
+        'min_samples_split': [2, 5, 10, 15]},
     'GradientBoostingClassifier': {
-        'n_estimators': [10, 100],
-        'learning_rate': [0.001, 0.01, 0.05, 0.1],
-        'max_depth': [ 5, 10],
-        },
+        'n_estimators': [10, 100, 1000],
+        'learning_rate': [0.001, 0.01, 0.05, 0.1, 0.5],
+        'subsample': [0.1, 0.5, 1.0],
+        'max_depth': [10, 20, 50, 100],
+        'random_state': [1]},
     'SVM': {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10],
         'kernel': ['linear'],
@@ -160,10 +175,12 @@ params = {
         'alpha': [0.00001,0.0001,0.001, 0.01, 0.03],
         'max_iter': [1000],  # number of epochs
         # 'loss': ['hinge'],  # logistic regression,
-        'loss': ['hinge'],
-        },
+        'loss': ['hinge', 'log', 'modified_huber'],
+        'penalty': ['l2', 'l1', 'none', 'elasticnet']},
     'LogisticRegression': {
-        'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1], },
+        'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1],
+        'penalty': ['l2'],
+        'solver': ['lbfgs', 'saga'], },
     'KNN': {
         'n_neighbors': [1, 5, 10, 25, 50, 100],
         'weights': ['uniform', 'distance'],
@@ -182,7 +199,7 @@ params = {
 helper = EstimatorSelectionHelper(models, params)
 helper.fit(X_train, y_train,scoring="accuracy", n_jobs=6)
 
-scoring_table = helper.score_summary(sort_by='max_score')
+scoring_table = helper.score_summary()
 
 
 
@@ -210,7 +227,8 @@ print("score Random Forest Model: ", rdf.score(X_test,y_test))
 log_clf = LogisticRegression(
     C=helper.get_gs_best_params('LogisticRegression')['C'])
 rnd_clf = RandomForestClassifier(
-    max_depth=helper.get_gs_best_params('RandomForestClassifier')['max_depth'],
+    max_depth=helper.get_gs_best_params(
+        'RandomForestClassifier')['max_depth'],
     min_samples_leaf=helper.get_gs_best_params('RandomForestClassifier')[
         'min_samples_leaf'],
     n_estimators=helper.get_gs_best_params(
@@ -218,9 +236,8 @@ rnd_clf = RandomForestClassifier(
     max_features=helper.get_gs_best_params(
         'RandomForestClassifier')['max_features'],
     min_samples_split=helper.get_gs_best_params('RandomForestClassifier')[
-        'min_samples_split'],
-    random_state=helper.get_gs_best_params('RandomForestClassifier')['random_state'])
-sgd_clf = SGDClassifier(
+        'min_samples_split'])
+"""sgd_clf = SGDClassifier(
     loss=helper.get_gs_best_params('SGDClassifier')['loss'],
     alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
     max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter'],
@@ -230,8 +247,8 @@ nb_clf = GaussianNB()
 
 svc_clf = SVC(
     C=helper.get_gs_best_params('SVM')['C'],
-    kernel=helper.get_gs_best_params('SVM')['kernel'])
-gbc_clf = GradientBoostingClassifier(
+    kernel=helper.get_gs_best_params('SVM')['kernel'])"""
+"""gbc_clf = GradientBoostingClassifier(
     n_estimators=helper.get_gs_best_params(
         'GradientBoostingClassifier')['n_estimators'],
     learning_rate=helper.get_gs_best_params('GradientBoostingClassifier')['learning_rate'])
@@ -241,12 +258,11 @@ voting_clf = VotingClassifier(
 
 voting_clf.fit(X_train, y_train)
 
+# predicted_values_SVM = voting_clf.predict(matchsTest)
 predicted_values_SVM = voting_clf.predict(X_test)
-
 print("score Ensemble Model: ", voting_clf.score(X_test, y_test))
-
 confusion_matrix(y_test, predicted_values_SVM, labels=[1, 0, -1])
 
-
+"""
 match_soumission = pd.DataFrame(predicted_values_SVM)
-match_soumission.to_csv(r"./predictionProjet1.csv")
+match_soumission.to_csv(r"./predictionProjet1.csv")"""

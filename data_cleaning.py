@@ -3,7 +3,7 @@ from sklearn.preprocessing import LabelBinarizer, OneHotEncoder, MultiLabelBinar
 from sklearn.preprocessing import Imputer, OrdinalEncoder
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.pipeline import Pipeline
 
 
@@ -37,7 +37,7 @@ class Data_Cleaning:
     def run(self):
 
         # Récupérer toutes les features du type float64
-        numerical_data = self.matchs.select_dtypes("float64")
+        numerical_data = self.matchs.select_dtypes(["float64", 'int64'])
         num_attribs = list(numerical_data)
         # Changer le type des saisons d'objets à categorique
 
@@ -51,7 +51,7 @@ class Data_Cleaning:
         num_pipeline = Pipeline([
             ('selector', DataFrameSelector(num_attribs)),
             ('imputer', Imputer(strategy="median")),
-            ('min_max_scaler', MinMaxScaler()),
+            ('min_max_scaler', StandardScaler()),
         ])
 
         categorical_pipeline = Pipeline([
