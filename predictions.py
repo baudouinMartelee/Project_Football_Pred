@@ -31,10 +31,12 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 ###################################
 
 print("*******Data Engineering for the Train Set*******")
-matchsTrain = Data_Engineering(matchsTrain, player_attr, teams,team_attr).run()
+matchsTrain = Data_Engineering(
+    matchsTrain, player_attr, teams, team_attr).run()
 matchsTrain = Data_Engineering.add_labels(matchsTrain)
 print("*******Data Engineering for the Test Set*******")
-matchsTest = Data_Engineering(matchsTest, player_attr, teams,team_attr).run()
+matchsTest = Data_Engineering(
+    matchsTest, player_attr, teams, team_attr, matchsTrain).run()
 
 
 label = matchsTrain[['label']]
@@ -123,8 +125,10 @@ sgd_clf = SGDClassifier(loss='hinge', alpha=0.0001, max_iter=1000)
 After
 """
 log_clf = LogisticRegression(C=best_param_Logistique['C'])
-rnd_clf = RandomForestClassifier(max_depth=best_param_RF['max_depth'], min_samples_leaf=best_param_RF['min_samples_leaf'])
-sgd_clf = SGDClassifier(loss=best_paramSGD['loss'], alpha=best_paramSGD['alpha'], max_iter=best_paramSGD['max_iter'])
+rnd_clf = RandomForestClassifier(
+    max_depth=best_param_RF['max_depth'], min_samples_leaf=best_param_RF['min_samples_leaf'])
+sgd_clf = SGDClassifier(
+    loss=best_paramSGD['loss'], alpha=best_paramSGD['alpha'], max_iter=best_paramSGD['max_iter'])
 
 voting_clf = VotingClassifier(
     estimators=[('lr', log_clf), ('rf', rnd_clf), ('sgd', sgd_clf)], voting='hard')
@@ -155,8 +159,10 @@ print("score : ", rf.score(X_test, y_test))
 """
 
 log_clf = LogisticRegression(C=best_param_Logistique['C'])
-rnd_clf = RandomForestClassifier(max_depth=best_param_RF['max_depth'], min_samples_leaf=best_param_RF['min_samples_leaf'])
-sgd_clf = SGDClassifier(loss=best_paramSGD['loss'], alpha=best_paramSGD['alpha'], max_iter=best_paramSGD['max_iter'])
+rnd_clf = RandomForestClassifier(
+    max_depth=best_param_RF['max_depth'], min_samples_leaf=best_param_RF['min_samples_leaf'])
+sgd_clf = SGDClassifier(
+    loss=best_paramSGD['loss'], alpha=best_paramSGD['alpha'], max_iter=best_paramSGD['max_iter'])
 
 voting_clf = VotingClassifier(
     estimators=[('lr', log_clf), ('rf', rnd_clf), ('sgd', sgd_clf)], voting='hard')
@@ -172,4 +178,3 @@ match_soumission = pd.DataFrame(predicted_values_Ensemble)
 match_soumission.info()
 
 match_soumission.to_csv(r"./predictionProjet2.csv")
-
