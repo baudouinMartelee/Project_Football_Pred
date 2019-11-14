@@ -62,7 +62,7 @@ class Data_Cleaning:
         from sklearn.pipeline import FeatureUnion
         full_pipeline = FeatureUnion(transformer_list=[
             ("num_pipeline", num_pipeline),
-            #("categorical_pipeline", categorical_pipeline)
+            ("categorical_pipeline", categorical_pipeline)
         ])
 
         # data are clean here
