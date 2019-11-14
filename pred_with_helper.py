@@ -2,6 +2,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import GridSearchCV
 from data_engineering import Data_Engineering
@@ -28,7 +29,7 @@ warnings.simplefilter("ignore")
 #        GETTING THE DATA        #
 ##################################
 
-matchsTrain = pd.read_csv('X_Train.csv')
+matchsTrain = pd.read_csv('matchsTrainFinal.csv')
 matchsTest = pd.read_csv('X_Test.csv')
 players = pd.read_csv('Player.csv')
 # countries = pd.read_csv('Country.csv')
@@ -42,6 +43,7 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 #       DATA ENGINEERING          #
 ###################################
 
+"""
 print("*******Data Engineering for the Train Set*******")
 matchsTrain = Data_Engineering.add_labels(matchsTrain)
 matchsTrain = Data_Engineering(
@@ -50,6 +52,7 @@ matchsTrain = Data_Engineering(
 print("*******Data Engineering for the Test Set*******")
 matchsTest = Data_Engineering(
     matchsTest, player_attr, teams, team_attr, matchsTrain).run()
+"""
 
 label = matchsTrain[['label']]
 matchsTrain.drop(columns=['label', 'home_team_goal',
@@ -64,6 +67,20 @@ print("*******Data Cleaning for the Test Set*******")
 #matchsTest = Data_Cleaning(matchsTest).run()
 
 
+
+pca = PCA(n_components=30)
+pca.fit_transform(matchsTrain)
+
+plt.figure()
+plt.plot(np.cumsum(pca.explained_variance_ratio_))
+plt.xlabel('Number of Components')
+plt.ylabel('Variance (%)') #for each component
+plt.title('Pulsar Dataset Explained Variance')
+plt.show()
+
+pca = PCA(n_components=29)
+matchsTrainPca =    pca.fit_transform(matchsTrain)
+
 ###################################
 #           PREDICTIONS           #
 ###################################
@@ -73,7 +90,7 @@ print("*******Data Cleaning for the Test Set*******")
 
 
 X_train, X_test, y_train, y_test = train_test_split(
-    matchsTrain, label, random_state=5)
+    matchsTrainPca, label, random_state=5)
 
 
 # Grid search with the Helper
@@ -166,6 +183,10 @@ helper = EstimatorSelectionHelper(models, params)
 helper.fit(X_train, y_train,scoring="accuracy", n_jobs=6)
 
 scoring_table = helper.score_summary(sort_by='max_score')
+
+
+
+
 
 
 rdf = SGDClassifier(
