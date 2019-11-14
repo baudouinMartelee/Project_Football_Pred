@@ -21,6 +21,13 @@ class EstimatorSelectionHelper:
         self.keys = models.keys()
         self.grid_searches = {}
 
+    def get_gs_best_params(self, key):
+        # print(self.grid_searches[key])
+        return self.grid_searches[key].best_params_
+
+    def get_gs(self):
+        return self.grid_searches
+
     def fit(self, X, y, cv=3, n_jobs=-1, verbose=1, scoring=None, refit=False):
         for key in self.keys:
             print("Running GridSearchCV for %s." % key)
@@ -64,6 +71,4 @@ class EstimatorSelectionHelper:
         columns = columns + [c for c in df.columns if c not in columns]
 
         return df[columns]
-
-    def get_gs_best_params(self, key):
-        return self.grid_searches[key].best_params_
+    

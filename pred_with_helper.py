@@ -43,17 +43,17 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 ###################################
 
 print("*******Data Engineering for the Train Set*******")
+matchsTrain = Data_Engineering.add_labels(matchsTrain)
 matchsTrain = Data_Engineering(
     matchsTrain, player_attr, teams, team_attr).run()
-matchsTrain = Data_Engineering.add_labels(matchsTrain)
-print("*******Data Engineering for the Test Set*******")
-# matchsTest = Data_Engineering(matchsTest, player_attr, teams,team_attr).run()
 
+print("*******Data Engineering for the Test Set*******")
+matchsTest = Data_Engineering(
+    matchsTest, player_attr, teams, team_attr, matchsTrain).run()
 
 label = matchsTrain[['label']]
 matchsTrain.drop(columns=['label', 'home_team_goal',
                           'away_team_goal'], inplace=True)
-
 
 ###################################
 #        CLEANING DATA            #
@@ -79,13 +79,14 @@ X_train, X_test, y_train, y_test = train_test_split(
 # Grid search with the Helper
 
 """'RandomForestClassifier': RandomForestClassifier(),
-      'GradientBoostingClassifier': GradientBoostingClassifier(),
-      'SGDClassifier': SGDClassifier(),
-      'LogisticRegression': LogisticRegression(),
-      'SVM': SVC(),
-      'KNN': KNeighborsClassifier(),
-      'DT': DecisionTreeClassifier(),
-      'NB': GaussianNB(),"""
+    'AdaBoostClassifier': AdaBoostClassifier(base_estimator=RandomForestClassifier()),
+    'GradientBoostingClassifier': GradientBoostingClassifier(),
+    'NB': GaussianNB(), ko
+    'DT': DecisionTreeClassifier(), ko
+    'SVM': SVC(),
+    'XGBClassifier': XGBClassifier(),
+    'SGDClassifier': SGDClassifier(),
+    'KNN': KNeighborsClassifier() ko"""
 
 
 models = {
@@ -109,23 +110,25 @@ params = {
             },
     'AdaBoostClassifier': {
         'n_estimators': [1, 10, 100, 1000],
-        'base_estimator__max_depth': [30, 40, 50, 60, 70, 100],
+        'base_estimator__max_depth': [40, 50, 60, 100],
         'base_estimator__min_samples_leaf': [50],
         'base_estimator__max_features': ['sqrt', 'log2'],
-        'base_estimator__min_samples_split': [2, 5, 10]
-        },
+        'base_estimator__min_samples_split': [2, 5, 10],
+        'base_estimator__n_estimators': [100],
+        'random_state': [1]},
     'XGBClassifier': {
         'objective': ['multi:softprob'],
-        'max_depth': np.arange(1, 21),
+        'max_depth': np.arange(5, 21),
         'n_estimators': [100, 200, 300, 400, 500],
         'learning_rate': [0.0001, 0.001, 0.01, 0.05, 0.1]},
     'RandomForestClassifier': {
-        'n_estimators': [50,75],
-        'max_depth': [5,7,10,15,20],
-        'min_samples_leaf': [30,40,50],
-        'max_features': ['auto'],
-        'min_samples_split': [2, 5, 10]
-        },
+
+        'n_estimators': [100],
+        'max_depth': [40, 50, 60, 100],
+        'min_samples_leaf': [50],
+        'max_features': ['sqrt', 'log2'],
+        'min_samples_split': [2, 5, 10],
+        'random_state': [1]},
     'GradientBoostingClassifier': {
         'n_estimators': [10, 100],
         'learning_rate': [0.001, 0.01, 0.05, 0.1],
@@ -182,12 +185,20 @@ print("score Random Forest Model: ", rdf.score(X_test,y_test))
 ###########ENSEMBLE MODEL###################
 
 
-log_clf = LogisticRegression(C=helper.get_gs_best_params('LogisticRegression')['C'])
-rnd_clf = RandomForestClassifier(max_depth=helper.get_gs_best_params('RandomForestClassifier')['max_depth'],
-    min_samples_leaf=helper.get_gs_best_params('RandomForestClassifier')['min_samples_leaf'],
-    n_estimators = helper.get_gs_best_params('RandomForestClassifier')['n_estimators'],
-    min_samples_split = helper.get_gs_best_params('RandomForestClassifier')['min_samples_split'],
-    random_state=1)
+
+log_clf = LogisticRegression(
+    C=helper.get_gs_best_params('LogisticRegression')['C'])
+rnd_clf = RandomForestClassifier(
+    max_depth=helper.get_gs_best_params('RandomForestClassifier')['max_depth'],
+    min_samples_leaf=helper.get_gs_best_params('RandomForestClassifier')[
+        'min_samples_leaf'],
+    n_estimators=helper.get_gs_best_params(
+        'RandomForestClassifier')['n_estimators'],
+    max_features=helper.get_gs_best_params(
+        'RandomForestClassifier')['max_features'],
+    min_samples_split=helper.get_gs_best_params('RandomForestClassifier')[
+        'min_samples_split'],
+    random_state=helper.get_gs_best_params('RandomForestClassifier')['random_state'])
 sgd_clf = SGDClassifier(
     loss=helper.get_gs_best_params('SGDClassifier')['loss'],
     alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
@@ -202,12 +213,10 @@ svc_clf = SVC(
 gbc_clf = GradientBoostingClassifier(
     n_estimators=helper.get_gs_best_params(
         'GradientBoostingClassifier')['n_estimators'],
-    max_depth = helper.get_gs_best_params(
-        'GradientBoostingClassifier')['max_depth'],
     learning_rate=helper.get_gs_best_params('GradientBoostingClassifier')['learning_rate'])
 
 voting_clf = VotingClassifier(
-    estimators=[('rnd', rnd_clf), ('sgd', sgd_clf)], voting='hard', n_jobs=-1)
+    estimators=[('rnd', rnd_clf)], voting='hard', n_jobs=-1)
 
 voting_clf.fit(X_train, y_train)
 
@@ -215,6 +224,8 @@ predicted_values_SVM = voting_clf.predict(X_test)
 
 print("score Ensemble Model: ", voting_clf.score(X_test, y_test))
 
-
-
 confusion_matrix(y_test, predicted_values_SVM, labels=[1, 0, -1])
+
+
+match_soumission = pd.DataFrame(predicted_values_SVM)
+match_soumission.to_csv(r"./predictionProjet1.csv")
