@@ -33,7 +33,6 @@ warnings.simplefilter("ignore")
 ##################################
 
 matchsTrain = pd.read_csv('matchsTrainFinal.csv')
-
 matchsTest = pd.read_csv('X_Test.csv')
 players = pd.read_csv('Player.csv')
 teams = pd.read_csv('Team.csv')
@@ -47,9 +46,9 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 
 """
 print("*******Data Engineering for the Train Set*******")
-matchsTrain = Data_Engineering.add_labels(matchsTrain)
-matchsTrain = Data_Engineering(
-    matchsTrain, player_attr, teams, team_attr).run()
+# matchsTrain = Data_Engineering.add_labels(matchsTrain)
+# matchsTrain = Data_Engineering(
+# matchsTrain, player_attr, teams, team_attr).run()
 
 # matchsTrain.to_csv(r'./matchsTrainFinal.csv')
 correlation = matchsTrain.corrwith(matchsTrain['label'])
@@ -67,9 +66,9 @@ matchsTrain.drop(columns=['label', 'home_team_goal',
 #        CLEANING DATA            #
 ###################################
 print("*******Data Cleaning for the Train Set*******")
-matchsTrainCleaned = Data_Cleaning(matchsTrain).run()
+matchsTrain = Data_Cleaning(matchsTrain).run()
 print("*******Data Cleaning for the Test Set*******")
-# matchsTestCleaned = Data_Cleaning(matchsTest).run()
+# matchsTest = Data_Cleaning(matchsTest).run()
 
 # PCA
 
@@ -96,7 +95,7 @@ matchsTrainPca =    pca.fit_transform(matchsTrain)
 
 
 X_train, X_test, y_train, y_test = train_test_split(
-    matchsTrainPca, label, random_state=5)
+    matchsTrain, label, random_state=5)
 
 
 # Grid search with the Helper
@@ -130,10 +129,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 
 models = {
-    'LogisticRegression': LogisticRegression(multi_class='multinomial', random_state=1),
     'RandomForestClassifier': RandomForestClassifier(),
-    'SGDClassifier': SGDClassifier(),
-    'SVM': SVC(),
 }
 
 params = {
@@ -181,7 +177,8 @@ params = {
     'LogisticRegression': {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1],
         'penalty': ['l2'],
-        'solver': ['lbfgs', 'saga'], },
+        'solver': ['lbfgs', 'saga'],
+        'class_weight': ['balanced']},
     'KNN': {
         'n_neighbors': [1, 5, 10, 25, 50, 100],
         'weights': ['uniform', 'distance'],
@@ -224,7 +221,6 @@ print("score Random Forest Model: ", rdf.score(X_test,y_test))
 ###########ENSEMBLE MODEL###################
 
 
-
 log_clf = LogisticRegression(
     C=helper.get_gs_best_params('LogisticRegression')['C'])
 rnd_clf = RandomForestClassifier(
@@ -238,7 +234,7 @@ rnd_clf = RandomForestClassifier(
         'RandomForestClassifier')['max_features'],
     min_samples_split=helper.get_gs_best_params('RandomForestClassifier')[
         'min_samples_split'])
-"""sgd_clf = SGDClassifier(
+sgd_clf = SGDClassifier(
     loss=helper.get_gs_best_params('SGDClassifier')['loss'],
     alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
     max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter'],
@@ -248,14 +244,14 @@ nb_clf = GaussianNB()
 
 svc_clf = SVC(
     C=helper.get_gs_best_params('SVM')['C'],
-    kernel=helper.get_gs_best_params('SVM')['kernel'])"""
+    kernel=helper.get_gs_best_params('SVM')['kernel'])
 """gbc_clf = GradientBoostingClassifier(
     n_estimators=helper.get_gs_best_params(
         'GradientBoostingClassifier')['n_estimators'],
     learning_rate=helper.get_gs_best_params('GradientBoostingClassifier')['learning_rate'])
 
 voting_clf = VotingClassifier(
-    estimators=[('rnd', rnd_clf)], voting='hard', n_jobs=-1)
+    estimators=[('log', log_clf), ('rnd', rnd_clf), ('sgd', sgd_clf), ('svc', svc_clf)], voting='hard', n_jobs=-1)
 
 voting_clf.fit(X_train, y_train)
 
