@@ -128,12 +128,12 @@ class Data_Engineering:
             lambda x: get_nbr_matchs_won(matchs, x['home_team_api_id']), axis=1)
         self.matchs['away_matchs_won'] = self.matchs.apply(
             lambda x: get_nbr_matchs_won(matchs, x['away_team_api_id']), axis=1)
-
+        """
         self.matchs['matchs_won_against'] = self.matchs.apply(
             lambda x: get_nbr_matchs_won_against(matchs, x['home_team_api_id'], x['away_team_api_id']), axis=1)
         self.matchs['matchs_lost_against'] = self.matchs.apply(
             lambda x: get_nbr_matchs_lost_against(matchs, x['home_team_api_id'], x['away_team_api_id']), axis=1)
-
+"""
         """ self.matchs.drop(
             ['home_team_api_id', 'away_team_api_id'], axis=1, inplace=True)"""
 
