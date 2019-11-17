@@ -14,10 +14,10 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from xgboost import XGBClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
+import matplotlib.pyplot as plt
 import warnings
 warnings.simplefilter("ignore")
 
@@ -68,6 +68,32 @@ X_test.drop(columns=['label', 'home_team_goal',
 ###################################
 #        CLEANING DATA            #
 ###################################
+
+matchTrainCat = X_train.iloc[:,17:19]
+matchTrainCat = matchTrainCat.to_numpy()
+x = matchTrainCat[:,0]
+## PLOTING BOXPLOT
+
+
+green_diamond = dict(markerfacecolor='g', marker='D')
+fig3, ax3 = plt.subplots()
+ax3.set_title('Outliers Detection')
+ax3.boxplot(matchTrainCat, flierprops=green_diamond,)
+
+
+## PLOTING NORMAL DISTRIBUTION
+
+fig, axs = plt.subplots(1,2)
+n_bins = 50
+
+for i in range(0,matchTrainCat.shape[1]):
+    axs[i].hist(x = matchTrainCat[:,i],bins=n_bins,density=True)
+# We can set the number of bins with the `bins` kwarg
+
+
+
+
+
 print("*******Data Cleaning for the Train Set*******")
 X_train = Data_Cleaning(X_train).run()
 print("*******Data Cleaning for the Test Set*******")
