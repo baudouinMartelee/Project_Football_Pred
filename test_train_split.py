@@ -41,7 +41,7 @@ label = matchsTrain['label']
 
 
 X_train, X_test, y_train, y_test = train_test_split(
-    matchsTrain, label, test_size=0.3, random_state=42)
+    matchsTrain, label, test_size=0.33, random_state=42)
 
 print("*******Data Engineering for the Train Set*******")
 #matchsTrain = Data_Engineering.add_labels(matchsTrain)

@@ -2,6 +2,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn.linear_model import SGDClassifier
 from sklearn.model_selection import GridSearchCV
 from data_engineering import Data_Engineering
@@ -14,7 +15,8 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from xgboost import XGBClassifier
+from sklearn.multiclass import OneVsRestClassifier
+# from xgboost import XGBClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import RidgeClassifier
@@ -23,6 +25,7 @@ from sklearn.svm import SVC
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import warnings
+from sklearn.decomposition import PCA
 warnings.simplefilter("ignore")
 
 ##################################
@@ -41,13 +44,14 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 #       DATA ENGINEERING          #
 ###################################
 
+
 print("*******Data Engineering for the Train Set*******")
 matchsTrain = Data_Engineering.add_labels(matchsTrain)
 # matchsTrain = Data_Engineering(
 # matchsTrain, player_attr, teams, team_attr).run()
 
 # matchsTrain.to_csv(r'./matchsTrainFinal.csv')
-#correlation = matchsTrain.corrwith(matchsTrain['label'])
+# correlation = matchsTrain.corrwith(matchsTrain['label'])
 
 print("*******Data Engineering for the Test Set*******")
 # matchsTest = Data_Engineering(
@@ -64,11 +68,25 @@ matchsTrain.drop(columns=['label', 'home_team_goal',
 #        CLEANING DATA            #
 ###################################
 print("*******Data Cleaning for the Train Set*******")
-matchsTrainCleaned = Data_Cleaning(matchsTrain).run()
+matchsTrain = Data_Cleaning(matchsTrain).run()
 print("*******Data Cleaning for the Test Set*******")
-#matchsTestCleaned = Data_Cleaning(matchsTest).run()
+# matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
 # PCA
+
+
+pca = PCA(n_components=30)
+pca.fit_transform(matchsTrain)
+
+plt.figure()
+plt.plot(np.cumsum(pca.explained_variance_ratio_))
+plt.xlabel('Number of Components')
+plt.ylabel('Variance (%)')  # for each component
+plt.title('Pulsar Dataset Explained Variance')
+plt.show()
+
+pca = PCA(n_components=29)
+matchsTrainPca = pca.fit_transform(matchsTrain)
 
 ###################################
 #           PREDICTIONS           #
@@ -79,7 +97,7 @@ print("*******Data Cleaning for the Test Set*******")
 
 
 X_train, X_test, y_train, y_test = train_test_split(
-    matchsTrainCleaned, label, random_state=5)
+    matchsTrain, label, random_state=5)
 
 
 # Grid search with the Helper
@@ -115,8 +133,6 @@ X_train, X_test, y_train, y_test = train_test_split(
 models = {
     'LogisticRegression': LogisticRegression(multi_class='multinomial'),
     'RandomForestClassifier': RandomForestClassifier(),
-    'SGDClassifier': SGDClassifier(),
-    'SVM': SVC(),
 }
 
 params = {
@@ -153,7 +169,7 @@ params = {
         'random_state': [1]},
     'SGDClassifier': {
         # learning rate
-        'alpha': [0.001, 0.01, 0.03],
+        'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.03],
         'max_iter': [1000],  # number of epochs
         # 'loss': ['hinge'],  # logistic regression,
         'loss': ['hinge', 'log', 'modified_huber'],
@@ -172,13 +188,29 @@ params = {
         'max_features': ['sqrt', 'log2'],
         'min_samples_split': [2, 5, 10],
         'random_state': [1]},
-    'NB': {},
+    'NB': {
+        'var_smoothing': np.logspace(0, -9, num=100)
+    },
 }
 
 helper = EstimatorSelectionHelper(models, params)
-helper.fit(X_train, y_train, scoring='f1_micro', n_jobs=6)
+helper.fit(X_train, y_train, scoring="accuracy", n_jobs=6)
 
 scoring_table = helper.score_summary()
+
+
+rdf = SGDClassifier(
+    loss=helper.get_gs_best_params('SGDClassifier')['loss'],
+    alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
+    max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter']
+)
+
+
+rdf.fit(X_train, y_train)
+
+predicted_values_SVM = rdf.predict(X_test)
+
+print("score Random Forest Model: ", rdf.score(X_test, y_test))
 
 
 ###########ENSEMBLE MODEL###################
@@ -201,16 +233,19 @@ rnd_clf = RandomForestClassifier(
         'min_samples_split'])
 sgd_clf = SGDClassifier(
     loss=helper.get_gs_best_params('SGDClassifier')['loss'],
-    penalty=helper.get_gs_best_params('SGDClassifier')['penalty'],
     alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
-    max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter'])
+    max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter'],
+    random_state=1
+)
+nb_clf = GaussianNB()
+
 svc_clf = SVC(
     C=helper.get_gs_best_params('SVM')['C'],
     kernel=helper.get_gs_best_params('SVM')['kernel'])
 """gbc_clf = GradientBoostingClassifier(
     n_estimators=helper.get_gs_best_params(
         'GradientBoostingClassifier')['n_estimators'],
-    learning_rate=helper.get_gs_best_params('GradientBoostingClassifier')['learning_rate'])"""
+    learning_rate=helper.get_gs_best_params('GradientBoostingClassifier')['learning_rate'])
 
 voting_clf = VotingClassifier(
     estimators=[('rnd', rnd_clf), ('sgd', sgd_clf)], voting='hard', n_jobs=-1)
@@ -222,6 +257,5 @@ predicted_values_SVM = voting_clf.predict(X_test)
 print("score Ensemble Model: ", voting_clf.score(X_test, y_test))
 confusion_matrix(y_test, predicted_values_SVM, labels=[1, 0, -1])
 
-"""
 match_soumission = pd.DataFrame(predicted_values_SVM)
 match_soumission.to_csv(r"./predictionProjet1.csv")"""
