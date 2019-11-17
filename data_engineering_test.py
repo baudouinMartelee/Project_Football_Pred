@@ -501,10 +501,10 @@ for i in range(2, 12):
 correlation = mergedDf.corrwith(mergedDf['label'])"""
 
 ###PLOT
-from matplotlib import pyplot as plt
+"""from matplotlib import pyplot as plt
 import seaborn as sns
 
 plt.figure(figsize=(40,15))
 sns.barplot(x='home_form', y='home_team_goal',data=df)
 sns.heatmap(df.corr(),annot=True,cmap='coolwarm', linewidths=.5)
-sns.pairplot(df.sample(1000),hue='label')
+sns.pairplot(df.sample(1000),hue='label', palette="husl") """
