@@ -32,12 +32,12 @@ warnings.simplefilter("ignore")
 #        GETTING THE DATA        #
 ##################################
 
-matchsTrain = pd.read_csv('matchsTrainFinal.csv')
-matchsTest = pd.read_csv('X_Test.csv')
-players = pd.read_csv('Player.csv')
-teams = pd.read_csv('Team.csv')
-team_attr = pd.read_csv('Team_Attributes.csv')
-player_attr = pd.read_csv('Player_Attributes.csv')
+matchsTrain = pd.read_csv('./csv/X_Train.csv')
+matchsTest = pd.read_csv('./csv/X_Test.csv')
+players = pd.read_csv('./csv/Player.csv')
+teams = pd.read_csv('./csv/Team.csv')
+team_attr = pd.read_csv('./csv/Team_Attributes.csv')
+player_attr = pd.read_csv('./csv/Player_Attributes.csv')
 
 
 ###################################
@@ -47,8 +47,8 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 
 print("*******Data Engineering for the Train Set*******")
 matchsTrain = Data_Engineering.add_labels(matchsTrain)
-# matchsTrain = Data_Engineering(
-# matchsTrain, player_attr, teams, team_attr).run()
+matchsTrain = Data_Engineering(
+    matchsTrain, player_attr, teams, team_attr).run()
 
 # matchsTrain.to_csv(r'./matchsTrainFinal.csv')
 # correlation = matchsTrain.corrwith(matchsTrain['label'])
@@ -73,7 +73,7 @@ print("*******Data Cleaning for the Test Set*******")
 # matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
 # PCA
-
+"""
 
 pca = PCA(n_components=30)
 pca.fit_transform(matchsTrain)
@@ -86,7 +86,7 @@ plt.title('Pulsar Dataset Explained Variance')
 plt.show()
 
 pca = PCA(n_components=29)
-matchsTrainPca = pca.fit_transform(matchsTrain)
+matchsTrainPca = pca.fit_transform(matchsTrain)"""
 
 ###################################
 #           PREDICTIONS           #
@@ -131,7 +131,6 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 
 models = {
-    'LogisticRegression': LogisticRegression(multi_class='multinomial'),
     'RandomForestClassifier': RandomForestClassifier(),
 }
 
@@ -194,7 +193,7 @@ params = {
 }
 
 helper = EstimatorSelectionHelper(models, params)
-helper.fit(X_train, y_train, scoring="accuracy", n_jobs=6)
+helper.fit(X_train, y_train, scoring="f1_micro", n_jobs=6)
 
 scoring_table = helper.score_summary()
 

@@ -426,12 +426,14 @@ def get_nbr_players_by_lines(form):
 
 
 # matchsTrain = pd.read_csv('X_Train.csv')
-matchsTrain = pd.read_csv('X_Train.csv')
-matchsTest = pd.read_csv('X_Test.csv')
-players = pd.read_csv('Player.csv')
-teams = pd.read_csv('Team.csv')
-team_attr = pd.read_csv('Team_Attributes.csv')
-player_attr = pd.read_csv('Player_Attributes.csv')
+matchsTrain = pd.read_csv('./csv/X_Train.csv')
+matchsTest = pd.read_csv('./csv/X_Test.csv')
+players = pd.read_csv('./csv/Player.csv')
+teams = pd.read_csv('./csv/Team.csv')
+team_attr = pd.read_csv('./csv/Team_Attributes.csv')
+player_attr = pd.read_csv('./csv/Player_Attributes.csv')
+countries = pd.read_csv('./csv/Country.csv')
+leagues = pd.read_csv('./csv/League.csv')
 
 matchsTrain['label'] = matchsTrain.apply(lambda row: det_label(
     row['home_team_goal'], row['away_team_goal']), axis=1)
@@ -501,10 +503,10 @@ for i in range(2, 12):
 correlation = mergedDf.corrwith(mergedDf['label'])"""
 
 ###PLOT
-"""from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 import seaborn as sns
 
 plt.figure(figsize=(40,15))
-sns.barplot(x='home_form', y='home_team_goal',data=df)
-sns.heatmap(df.corr(),annot=True,cmap='coolwarm', linewidths=.5)
-sns.pairplot(df.sample(1000),hue='label', palette="husl") """
+#sns.barplot(x='home_form', y='home_team_goal',data=df)
+#sns.heatmap(df.corr(),annot=True,cmap='coolwarm', linewidths=.5)
+sns.pairplot(df.sample(1000),hue='label', palette="husl") 
