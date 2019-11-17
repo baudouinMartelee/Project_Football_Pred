@@ -16,7 +16,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.multiclass import OneVsRestClassifier
-#from xgboost import XGBClassifier
+# from xgboost import XGBClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import RidgeClassifier
@@ -44,19 +44,21 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 #       DATA ENGINEERING          #
 ###################################
 
-"""
+
 print("*******Data Engineering for the Train Set*******")
-# matchsTrain = Data_Engineering.add_labels(matchsTrain)
+matchsTrain = Data_Engineering.add_labels(matchsTrain)
 # matchsTrain = Data_Engineering(
 # matchsTrain, player_attr, teams, team_attr).run()
 
 # matchsTrain.to_csv(r'./matchsTrainFinal.csv')
-correlation = matchsTrain.corrwith(matchsTrain['label'])
+# correlation = matchsTrain.corrwith(matchsTrain['label'])
 
 print("*******Data Engineering for the Test Set*******")
-matchsTest = Data_Engineering(
-    matchsTest, player_attr, teams, team_attr, matchsTrain).run()
-"""
+# matchsTest = Data_Engineering(
+# matchsTest, player_attr, teams, team_attr, matchsTrain).run()
+
+# matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
+# matchsTest.to_csv(r'./matchsTestEngineerd.csv')
 
 label = matchsTrain[['label']]
 matchsTrain.drop(columns=['label', 'home_team_goal',
@@ -68,7 +70,7 @@ matchsTrain.drop(columns=['label', 'home_team_goal',
 print("*******Data Cleaning for the Train Set*******")
 matchsTrain = Data_Cleaning(matchsTrain).run()
 print("*******Data Cleaning for the Test Set*******")
-# matchsTest = Data_Cleaning(matchsTest).run()
+# matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
 # PCA
 
@@ -79,12 +81,12 @@ pca.fit_transform(matchsTrain)
 plt.figure()
 plt.plot(np.cumsum(pca.explained_variance_ratio_))
 plt.xlabel('Number of Components')
-plt.ylabel('Variance (%)') #for each component
+plt.ylabel('Variance (%)')  # for each component
 plt.title('Pulsar Dataset Explained Variance')
 plt.show()
 
 pca = PCA(n_components=29)
-matchsTrainPca =    pca.fit_transform(matchsTrain)
+matchsTrainPca = pca.fit_transform(matchsTrain)
 
 ###################################
 #           PREDICTIONS           #
@@ -129,6 +131,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 
 models = {
+    'LogisticRegression': LogisticRegression(multi_class='multinomial'),
     'RandomForestClassifier': RandomForestClassifier(),
 }
 
@@ -158,18 +161,15 @@ params = {
         'max_features': ['sqrt', 'log2', 'auto'],
         'min_samples_split': [2, 5, 10, 15]},
     'GradientBoostingClassifier': {
-        'n_estimators': [10, 100, 1000],
-        'learning_rate': [0.001, 0.01, 0.05, 0.1, 0.5],
-        'subsample': [0.1, 0.5, 1.0],
-        'max_depth': [10, 20, 50, 100],
-        'random_state': [1]},
+        'learning_rate': [0.15, 0.1, 0.05, 0.01, 0.005, 0.001],
+        'n_estimators': [100, 250, 500, 750, 1000, 1250, 1500, 1750]},
     'SVM': {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10],
         'kernel': ['linear'],
         'random_state': [1]},
     'SGDClassifier': {
         # learning rate
-        'alpha': [0.00001,0.0001,0.001, 0.01, 0.03],
+        'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.03],
         'max_iter': [1000],  # number of epochs
         # 'loss': ['hinge'],  # logistic regression,
         'loss': ['hinge', 'log', 'modified_huber'],
@@ -177,8 +177,7 @@ params = {
     'LogisticRegression': {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1],
         'penalty': ['l2'],
-        'solver': ['lbfgs', 'saga'],
-        'class_weight': ['balanced']},
+        'solver': ['lbfgs', 'saga']},
     'KNN': {
         'n_neighbors': [1, 5, 10, 25, 50, 100],
         'weights': ['uniform', 'distance'],
@@ -190,39 +189,37 @@ params = {
         'min_samples_split': [2, 5, 10],
         'random_state': [1]},
     'NB': {
-            'var_smoothing' : np.logspace(0,-9, num=100)
-            },
+        'var_smoothing': np.logspace(0, -9, num=100)
+    },
 }
 
 helper = EstimatorSelectionHelper(models, params)
-helper.fit(X_train, y_train,scoring="accuracy", n_jobs=6)
+helper.fit(X_train, y_train, scoring="accuracy", n_jobs=6)
 
 scoring_table = helper.score_summary()
-
-
-
-
 
 
 rdf = SGDClassifier(
     loss=helper.get_gs_best_params('SGDClassifier')['loss'],
     alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
     max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter']
-    )
+)
 
 
 rdf.fit(X_train, y_train)
 
 predicted_values_SVM = rdf.predict(X_test)
 
-print("score Random Forest Model: ", rdf.score(X_test,y_test))
+print("score Random Forest Model: ", rdf.score(X_test, y_test))
 
 
 ###########ENSEMBLE MODEL###################
 
 
 log_clf = LogisticRegression(
-    C=helper.get_gs_best_params('LogisticRegression')['C'])
+    C=helper.get_gs_best_params('LogisticRegression')['C'],
+    penalty=helper.get_gs_best_params('LogisticRegression')['penalty'],
+    solver=helper.get_gs_best_params('LogisticRegression')['solver'])
 rnd_clf = RandomForestClassifier(
     max_depth=helper.get_gs_best_params(
         'RandomForestClassifier')['max_depth'],
@@ -239,7 +236,7 @@ sgd_clf = SGDClassifier(
     alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
     max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter'],
     random_state=1
-    )
+)
 nb_clf = GaussianNB()
 
 svc_clf = SVC(
@@ -251,7 +248,7 @@ svc_clf = SVC(
     learning_rate=helper.get_gs_best_params('GradientBoostingClassifier')['learning_rate'])
 
 voting_clf = VotingClassifier(
-    estimators=[('log', log_clf), ('rnd', rnd_clf), ('sgd', sgd_clf), ('svc', svc_clf)], voting='hard', n_jobs=-1)
+    estimators=[('rnd', rnd_clf), ('sgd', sgd_clf)], voting='hard', n_jobs=-1)
 
 voting_clf.fit(X_train, y_train)
 
@@ -260,6 +257,5 @@ predicted_values_SVM = voting_clf.predict(X_test)
 print("score Ensemble Model: ", voting_clf.score(X_test, y_test))
 confusion_matrix(y_test, predicted_values_SVM, labels=[1, 0, -1])
 
-"""
 match_soumission = pd.DataFrame(predicted_values_SVM)
 match_soumission.to_csv(r"./predictionProjet1.csv")"""
