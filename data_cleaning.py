@@ -42,7 +42,7 @@ class Data_Cleaning:
         # Changer le type des saisons d'objets à categorique
 
         # ,'home_team_name','away_team_name','home_form','away_form']
-        categorical_attrib = ['season']
+        categorical_attrib = ['home_form', 'away_form']
         self.matchs[categorical_attrib] = self.matchs[categorical_attrib].apply(
             lambda x: x.astype('category'))
 
@@ -62,7 +62,7 @@ class Data_Cleaning:
         from sklearn.pipeline import FeatureUnion
         full_pipeline = FeatureUnion(transformer_list=[
             ("num_pipeline", num_pipeline),
-            #("categorical_pipeline", categorical_pipeline)
+            ("categorical_pipeline", categorical_pipeline)
         ])
 
         # data are clean here

@@ -29,7 +29,7 @@ warnings.simplefilter("ignore")
 #        GETTING THE DATA        #
 ##################################
 
-matchsTrain = pd.read_csv('X_Train.csv')
+matchsTrain = pd.read_csv('matchsTrainFinal.csv')
 matchsTest = pd.read_csv('X_Test.csv')
 players = pd.read_csv('Player.csv')
 teams = pd.read_csv('Team.csv')
@@ -43,14 +43,18 @@ player_attr = pd.read_csv('Player_Attributes.csv')
 
 print("*******Data Engineering for the Train Set*******")
 matchsTrain = Data_Engineering.add_labels(matchsTrain)
-matchsTrain = Data_Engineering(
-    matchsTrain, player_attr, teams, team_attr).run()
+# matchsTrain = Data_Engineering(
+# matchsTrain, player_attr, teams, team_attr).run()
 
 # matchsTrain.to_csv(r'./matchsTrainFinal.csv')
-correlation = matchsTrain.corrwith(matchsTrain['label'])
+#correlation = matchsTrain.corrwith(matchsTrain['label'])
 
 print("*******Data Engineering for the Test Set*******")
-# matchsTest = Data_Engineering(matchsTest, player_attr, teams, team_attr, matchsTrain).run()
+# matchsTest = Data_Engineering(
+# matchsTest, player_attr, teams, team_attr, matchsTrain).run()
+
+# matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
+# matchsTest.to_csv(r'./matchsTestEngineerd.csv')
 
 label = matchsTrain[['label']]
 matchsTrain.drop(columns=['label', 'home_team_goal',
@@ -62,7 +66,7 @@ matchsTrain.drop(columns=['label', 'home_team_goal',
 print("*******Data Cleaning for the Train Set*******")
 matchsTrainCleaned = Data_Cleaning(matchsTrain).run()
 print("*******Data Cleaning for the Test Set*******")
-# matchsTestCleaned = Data_Cleaning(matchsTest).run()
+#matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
 # PCA
 
@@ -109,7 +113,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 
 models = {
-    'LogisticRegression': LogisticRegression(multi_class='multinomial', random_state=1),
+    'LogisticRegression': LogisticRegression(multi_class='multinomial'),
     'RandomForestClassifier': RandomForestClassifier(),
     'SGDClassifier': SGDClassifier(),
     'SVM': SVC(),
@@ -141,11 +145,8 @@ params = {
         'max_features': ['sqrt', 'log2', 'auto'],
         'min_samples_split': [2, 5, 10, 15]},
     'GradientBoostingClassifier': {
-        'n_estimators': [10, 100, 1000],
-        'learning_rate': [0.001, 0.01, 0.05, 0.1, 0.5],
-        'subsample': [0.1, 0.5, 1.0],
-        'max_depth': [10, 20, 50, 100],
-        'random_state': [1]},
+        'learning_rate': [0.15, 0.1, 0.05, 0.01, 0.005, 0.001],
+        'n_estimators': [100, 250, 500, 750, 1000, 1250, 1500, 1750]},
     'SVM': {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10],
         'kernel': ['linear'],
@@ -160,7 +161,7 @@ params = {
     'LogisticRegression': {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1],
         'penalty': ['l2'],
-        'solver': ['lbfgs', 'saga'], },
+        'solver': ['lbfgs', 'saga']},
     'KNN': {
         'n_neighbors': [1, 5, 10, 25, 50, 100],
         'weights': ['uniform', 'distance'],
@@ -183,8 +184,10 @@ scoring_table = helper.score_summary()
 ###########ENSEMBLE MODEL###################
 
 
-"""log_clf = LogisticRegression(
-    C=helper.get_gs_best_params('LogisticRegression')['C'])"""
+log_clf = LogisticRegression(
+    C=helper.get_gs_best_params('LogisticRegression')['C'],
+    penalty=helper.get_gs_best_params('LogisticRegression')['penalty'],
+    solver=helper.get_gs_best_params('LogisticRegression')['solver'])
 rnd_clf = RandomForestClassifier(
     max_depth=helper.get_gs_best_params(
         'RandomForestClassifier')['max_depth'],
@@ -196,21 +199,21 @@ rnd_clf = RandomForestClassifier(
         'RandomForestClassifier')['max_features'],
     min_samples_split=helper.get_gs_best_params('RandomForestClassifier')[
         'min_samples_split'])
-"""sgd_clf = SGDClassifier(
+sgd_clf = SGDClassifier(
     loss=helper.get_gs_best_params('SGDClassifier')['loss'],
     penalty=helper.get_gs_best_params('SGDClassifier')['penalty'],
     alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
     max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter'])
 svc_clf = SVC(
     C=helper.get_gs_best_params('SVM')['C'],
-    kernel=helper.get_gs_best_params('SVM')['kernel'])"""
+    kernel=helper.get_gs_best_params('SVM')['kernel'])
 """gbc_clf = GradientBoostingClassifier(
     n_estimators=helper.get_gs_best_params(
         'GradientBoostingClassifier')['n_estimators'],
     learning_rate=helper.get_gs_best_params('GradientBoostingClassifier')['learning_rate'])"""
 
 voting_clf = VotingClassifier(
-    estimators=[('rnd', rnd_clf)], voting='hard', n_jobs=-1)
+    estimators=[('rnd', rnd_clf), ('sgd', sgd_clf)], voting='hard', n_jobs=-1)
 
 voting_clf.fit(X_train, y_train)
 
