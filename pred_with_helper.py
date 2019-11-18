@@ -192,17 +192,29 @@ params = {
     },
 }
 
+print(params.get('RandomForestClassifier'))
+
 helper = EstimatorSelectionHelper(models, params)
 helper.fit(X_train, y_train, scoring="f1_micro", n_jobs=6)
 
 scoring_table = helper.score_summary()
 
 
-rdf = SGDClassifier(
-    loss=helper.get_gs_best_params('SGDClassifier')['loss'],
-    alpha=helper.get_gs_best_params('SGDClassifier')['alpha'],
-    max_iter=helper.get_gs_best_params('SGDClassifier')['max_iter']
-)
+import seaborn as sns
+
+ax = sns.lineplot(data= params.get('RandomForestClassifier').get('max_depth')) 
+
+rdf = RandomForestClassifier(
+    max_depth=helper.get_gs_best_params(
+        'RandomForestClassifier')['max_depth'],
+    min_samples_leaf=helper.get_gs_best_params('RandomForestClassifier')[
+        'min_samples_leaf'],
+    n_estimators=helper.get_gs_best_params(
+        'RandomForestClassifier')['n_estimators'],
+    max_features=helper.get_gs_best_params(
+        'RandomForestClassifier')['max_features'],
+    min_samples_split=helper.get_gs_best_params('RandomForestClassifier')[
+        'min_samples_split'])
 
 
 rdf.fit(X_train, y_train)
