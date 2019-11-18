@@ -39,12 +39,11 @@ class Data_Engineering:
 
         ######## FEATURES ENGINEERING ##############
 
-
         # Fill the missing coordinates with the most recurrent ones
 
-        self.matchs[['home_player_'+str(i) for i in range(1,12)]].fillna(0)
-        self.matchs[['away_player_'+str(i) for i in range(1,12)]].fillna(0)
-        
+        self.matchs[['home_player_'+str(i) for i in range(1, 12)]].fillna(0)
+        self.matchs[['away_player_'+str(i) for i in range(1, 12)]].fillna(0)
+
         self.matchs = self.matchs.apply(
             lambda x: x.fillna(x.value_counts().index[0]))
 
@@ -54,7 +53,6 @@ class Data_Engineering:
             lambda x: create_formation(x, True), axis=1)
         self.matchs['away_form'] = self.matchs.apply(
             lambda x: create_formation(x, False), axis=1)
-
 
         # Cleaning the date (take only dd-mm-yyy)
         self.matchs['date'] = self.matchs['date'].apply(
@@ -158,9 +156,9 @@ class Data_Engineering:
         self.matchs.drop(self.matchs.select(
             lambda col: col.startswith('away_player'), axis=1), axis=1, inplace=True)
 
-        self.matchs.drop(self.matchs[['home_def_overall','home_mid_overall','home_att_overall','away_def_pot','away_mid_pot','away_att_pot',
-        'home_def_pot','home_mid_pot','home_att_pot','away_def_overall','away_mid_overall','away_att_overall']], axis=1, inplace=True)
-        
+        self.matchs.drop(self.matchs[['home_def_overall', 'home_mid_overall', 'home_att_overall', 'away_def_pot', 'away_mid_pot', 'away_att_pot',
+                                      'home_def_pot', 'home_mid_pot', 'home_att_pot', 'away_def_overall', 'away_mid_overall', 'away_att_overall']], axis=1, inplace=True)
+
         return self.matchs
 
 
@@ -183,8 +181,8 @@ def create_formation(row, home):
         list_form = row.loc[row.index.str.startswith(
             'away_player_Y')].tolist()[1:]
     # Will create a dict with the occurences of the players's positions
-    couter = Counter(list_form)
-    couter_val = Counter(sorted(couter.elements())).values()
+    counter = Counter(list_form)
+    couter_val = counter.values()
     # concatenates the values in a string like : 442
     form = ''.join((str(e) for e in list(couter_val)))
     return form
@@ -204,6 +202,7 @@ def dict_key_checker(attr_dict, api_id, date):
             min(dates, key=lambda key: abs(key-date))))]
     # print("Result : "+str(res))
     return res
+
 
 def get_nbr_players_by_lines(form):
     list_form = list(form)
@@ -253,9 +252,6 @@ def create_team_attr_chance_dict(teams_attr, key):
 def create_team_name_dict(teams):
     tms = teams[['team_api_id', 'team_short_name']]
     return tms.set_index('team_api_id').to_dict()['team_short_name']
-
-
-
 
 
 """
