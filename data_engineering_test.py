@@ -93,10 +93,10 @@ class Data_Engineering:
             self.matchs['away_player_overall_'+str(i)] = self.matchs.apply(
                 lambda x: test_key(self.ply_attr_overall_dict, int(x['away_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
 
-        """self.matchs['home_team_overall'] = self.matchs.select(
+        self.matchs['home_team_overall'] = self.matchs.select(
             lambda col: col.startswith('home_player_overall_'), axis=1).mean(axis=1)
         self.matchs['away_team_overall'] = self.matchs.select(
-            lambda col: col.startswith('away_player_overall_'), axis=1).mean(axis=1)"""
+            lambda col: col.startswith('away_player_overall_'), axis=1).mean(axis=1)
 
         print('Putting overall teams potential...')
         for i in range(1, 12):
@@ -105,10 +105,10 @@ class Data_Engineering:
             self.matchs['away_player_potential_'+str(i)] = self.matchs.apply(
                 lambda x: test_key(self.ply_attr_pot_dict, int(x['away_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
 
-        """self.matchs['home_team_potential'] = self.matchs.select(
+        self.matchs['home_team_potential'] = self.matchs.select(
             lambda col: col.startswith('home_player_potential_'), axis=1).mean(axis=1)
         self.matchs['away_team_potential'] = self.matchs.select(
-            lambda col: col.startswith('away_player_potential_'), axis=1).mean(axis=1)"""
+            lambda col: col.startswith('away_player_potential_'), axis=1).mean(axis=1)
 
         print("Putting buildUp and defence press...")
         self.matchs['home_build_up'] = self.matchs.apply(lambda x: test_key(
@@ -132,9 +132,9 @@ class Data_Engineering:
         self.matchs['away_form2'] = self.matchs.apply(lambda x: get_nbr_players_by_lines(
             x['away_form']), axis=1)"""
 
-        self.matchs.drop(
+        """self.matchs.drop(
             ['home_build_up', 'away_build_up', 'home_def_press', 'away_def_press'], axis=1, inplace=True)
-
+        """
         for index, row in self.matchs.iterrows():
             nbr_def_home, nbr_mid_home, nbr_att_home = get_nbr_players_by_lines(
                 row['home_form'])
@@ -439,9 +439,45 @@ matchsTrain['label'] = matchsTrain.apply(lambda row: det_label(
     row['home_team_goal'], row['away_team_goal']), axis=1)
 
 #matchsTrain = matchsTrain.head(1)
-df = Data_Engineering(matchsTrain, player_attr, teams, team_attr).run()
+#df = Data_Engineering(matchsTrain, player_attr, teams, team_attr).run()
+df = pd.read_csv('./matchsTrainFinal.csv')
 correlation = df.corrwith(df['label'])
 df = Data_Engineering.add_labels(df)
+
+dfCopy = df.select_dtypes(["float64", 'int64']).copy()
+
+import pandas as pd
+import numpy as np
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import f_classif
+
+X = dfCopy.drop(dfCopy[['label']], axis=1)  #independent columns
+y = dfCopy['label']    #target column i.e price range
+#apply SelectKBest class to extract top 10 best features
+bestfeatures = SelectKBest(score_func=f_classif, k=20)
+fit = bestfeatures.fit(X,y)
+dfscores = pd.DataFrame(fit.scores_)
+dfcolumns = pd.DataFrame(X.columns)
+#concat two dataframes for better visualization 
+featureScores = pd.concat([dfcolumns,dfscores],axis=1)
+featureScores.columns = ['Specs','Score']  #naming the dataframe columns
+print(featureScores.nlargest(10,'Score'))  #print 10 best features
+
+#df.to_csv(r'./matchsTrainFinal.csv')
+
+from sklearn.ensemble import ExtraTreesClassifier
+import matplotlib.pyplot as plt
+model = ExtraTreesClassifier()
+model.fit(X,y)
+print(model.feature_importances_) #use inbuilt class feature_importances of tree based classifiers
+#plot graph of feature importances for better visualization
+feat_importances = pd.Series(model.feature_importances_, index=X.columns)
+feat_importances.nlargest(10).plot(kind='barh')
+plt.show()
+
+plt.figure(figsize=(40,15))
+sns.heatmap(df.corr(),annot=True,cmap='coolwarm', linewidths=.5)
+
 """
 
 
@@ -503,10 +539,10 @@ for i in range(2, 12):
 correlation = mergedDf.corrwith(mergedDf['label'])"""
 
 ###PLOT
-from matplotlib import pyplot as plt
+"""from matplotlib import pyplot as plt
 import seaborn as sns
 
 plt.figure(figsize=(40,15))
 #sns.barplot(x='home_form', y='home_team_goal',data=df)
 #sns.heatmap(df.corr(),annot=True,cmap='coolwarm', linewidths=.5)
-sns.pairplot(df.sample(1000),hue='label', palette="husl") 
+sns.pairplot(df.sample(1000),hue='label', palette="husl") """
