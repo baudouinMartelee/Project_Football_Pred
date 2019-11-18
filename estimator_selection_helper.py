@@ -25,8 +25,8 @@ class EstimatorSelectionHelper:
         # print(self.grid_searches[key])
         return self.grid_searches[key].best_params_
 
-    def get_gs(self):
-        return self.grid_searches
+    def get_gs(self,key):
+        return self.grid_searches[key]
 
     def fit(self, X, y, cv=3, n_jobs=-1, verbose=1, scoring=None, refit=False):
         for key in self.keys:
