@@ -196,14 +196,14 @@ params = {
 }"""
 
 models = {
-    'RandomForestClassifier': RandomForestClassifier(class_weight='balanced'),
+    'RandomForestClassifier': RandomForestClassifier(),
 }
 
 params = {
     'RandomForestClassifier': {
-        'n_estimators': [50, 75, 100],
-        'max_depth': [50, 60, 70, 100],
-        'min_samples_leaf': [30, 40, 50, 60, 70],
+        'n_estimators': [30, 40, 50, ],
+        'max_depth': [30, 40, 50, 60, ],
+        'min_samples_leaf': [10, 20, 30, 40],
         'max_features': ['sqrt', 'log2', 'auto'],
         'min_samples_split': [2, 5, 10, 15]},
 }
@@ -217,9 +217,8 @@ scoring_table = helper.score_summary()
 
 #t_scoring = scoring_table.T
 
-import seaborn as sns
 
-ax = sns.lineplot(data= params.get('RandomForestClassifier').get('max_depth')) 
+ax = sns.lineplot(data=params.get('RandomForestClassifier').get('max_depth'))
 
 rdf = RandomForestClassifier(
     max_depth=helper.get_gs_best_params(

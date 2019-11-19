@@ -454,7 +454,7 @@ from sklearn.feature_selection import f_classif
 X = dfCopy.drop(dfCopy[['label']], axis=1)  #independent columns
 y = dfCopy['label']    #target column i.e price range
 #apply SelectKBest class to extract top 10 best features
-bestfeatures = SelectKBest(score_func=f_classif, k=20)
+bestfeatures = SelectKBest(score_func=f_classif, k=10)
 fit = bestfeatures.fit(X,y)
 dfscores = pd.DataFrame(fit.scores_)
 dfcolumns = pd.DataFrame(X.columns)
@@ -467,6 +467,7 @@ print(featureScores.nlargest(10,'Score'))  #print 10 best features
 
 from sklearn.ensemble import ExtraTreesClassifier
 import matplotlib.pyplot as plt
+import seaborn as sns
 model = ExtraTreesClassifier()
 model.fit(X,y)
 print(model.feature_importances_) #use inbuilt class feature_importances of tree based classifiers
