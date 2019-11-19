@@ -50,9 +50,15 @@ matchsTrain = Data_Engineering.add_labels(matchsTrain)
 matchsTrain = Data_Engineering(
     matchsTrain, player_attr, teams, team_attr).run()
 
-# matchsTrain.to_csv(r'./matchsTrainFinal.csv')
-# correlation = matchsTrain.corrwith(matchsTrain['label'])
+"""
+from matplotlib import pyplot as plt
+import seaborn as sns
 
+plt.figure(figsize=(40,15))
+sns.heatmap(matchsTrain.corr(),annot=True,cmap='coolwarm', linewidths=.5)
+#matchsTrain.to_csv(r'./csv/matchsTrainFinal.csv')
+correlation = matchsTrain.corr()
+"""
 print("*******Data Engineering for the Test Set*******")
 # matchsTest = Data_Engineering(
 # matchsTest, player_attr, teams, team_attr, matchsTrain).run()
@@ -68,7 +74,7 @@ matchsTrain.drop(columns=['label', 'home_team_goal',
 #        CLEANING DATA            #
 ###################################
 print("*******Data Cleaning for the Train Set*******")
-matchsTrain = Data_Cleaning(matchsTrain).run()
+matchsTrainCleaned = Data_Cleaning(matchsTrain).run()
 print("*******Data Cleaning for the Test Set*******")
 # matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
@@ -97,7 +103,7 @@ matchsTrainPca = pca.fit_transform(matchsTrain)"""
 
 
 X_train, X_test, y_train, y_test = train_test_split(
-    matchsTrain, label, random_state=5)
+    matchsTrainCleaned, label, random_state=5)
 
 
 # Grid search with the Helper
@@ -129,11 +135,7 @@ X_train, X_test, y_train, y_test = train_test_split(
         'min_samples_split': [2, 5, 10]
     """
 
-
-models = {
-    'RandomForestClassifier': RandomForestClassifier(),
-}
-
+"""
 params = {
     'RidgeClassifier': {},
     'BaggingClassifier': {
@@ -190,6 +192,20 @@ params = {
     'NB': {
         'var_smoothing': np.logspace(0, -9, num=100)
     },
+    
+}"""
+
+models = {
+    'RandomForestClassifier': RandomForestClassifier(class_weight='balanced'),
+}
+
+params = {
+    'RandomForestClassifier': {
+        'n_estimators': [50, 75, 100],
+        'max_depth': [50, 60, 70, 100],
+        'min_samples_leaf': [30, 40, 50, 60, 70],
+        'max_features': ['sqrt', 'log2', 'auto'],
+        'min_samples_split': [2, 5, 10, 15]},
 }
 
 print(params.get('RandomForestClassifier'))
@@ -199,6 +215,7 @@ helper.fit(X_train, y_train, scoring="f1_micro", n_jobs=6)
 
 scoring_table = helper.score_summary()
 
+#t_scoring = scoring_table.T
 
 import seaborn as sns
 
