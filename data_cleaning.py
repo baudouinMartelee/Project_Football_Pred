@@ -42,7 +42,7 @@ class Data_Cleaning:
         # Changer le type des saisons d'objets à categorique
 
         # ,'home_team_name','away_team_name','home_form','away_form']
-        categorical_attrib = ['season''home_form', 'away_form']
+        categorical_attrib = ['season', 'home_form', 'away_form']
         self.matchs[categorical_attrib] = self.matchs[categorical_attrib].apply(
             lambda x: x.astype('category'))
 
@@ -50,7 +50,6 @@ class Data_Cleaning:
 
         num_pipeline = Pipeline([
             ('selector', DataFrameSelector(num_attribs)),
-            ('imputer', Imputer(strategy="median")),
             ('min_max_scaler', StandardScaler()),
         ])
 
