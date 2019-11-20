@@ -26,6 +26,8 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 import warnings
 from sklearn.decomposition import PCA
+from matplotlib import pyplot as plt
+import seaborn as sns
 warnings.simplefilter("ignore")
 
 ##################################
@@ -63,12 +65,14 @@ print("*******Data Engineering for the Test Set*******")
 # matchsTest = Data_Engineering(
 # matchsTest, player_attr, teams, team_attr, matchsTrain).run()
 
-# matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
+matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
 # matchsTest.to_csv(r'./matchsTestEngineerd.csv')
 
 label = matchsTrain[['label']]
 matchsTrain.drop(columns=['label', 'home_team_goal',
                           'away_team_goal'], inplace=True)
+
+matchsTrain.to_csv(r'./matchsTrainEngineerdWithoutLabel.csv')
 
 ###################################
 #        CLEANING DATA            #

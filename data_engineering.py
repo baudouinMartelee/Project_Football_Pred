@@ -66,31 +66,29 @@ class Data_Engineering:
                 lambda x: dict_key_checker(self.ply_attr_overall_dict, int(x['away_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
 
         print('Putting overall teams potential...')
-        """for i in range(1, 12):
+        for i in range(1, 12):
             self.matchs['home_player_potential_'+str(i)] = self.matchs.apply(
                 lambda x: dict_key_checker(self.ply_attr_pot_dict, int(x['home_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
             self.matchs['away_player_potential_'+str(i)] = self.matchs.apply(
                 lambda x: dict_key_checker(self.ply_attr_pot_dict, int(x['away_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
-        """
+
         print("Putting buildUp and defence press...")
         self.matchs['home_build_up'] = self.matchs.apply(lambda x: dict_key_checker(
             self.teams_shooting_dict, x['home_team_api_id'], x['date'].split('-')[0])/99, axis=1)
         self.matchs['away_build_up'] = self.matchs.apply(lambda x: dict_key_checker(
             self.teams_shooting_dict, x['away_team_api_id'], x['date'].split('-')[0])/99, axis=1)
 
-        """self.matchs['diff_build_up'] = self.matchs['home_build_up'] - \
-        self.matchs['away_build_up']"""
+        self.matchs['diff_build_up'] = self.matchs['home_build_up'] - \
+            self.matchs['away_build_up']
 
         self.matchs['home_def_press'] = self.matchs.apply(lambda x: dict_key_checker(
             self.teams_def_dict, x['home_team_api_id'], x['date'].split('-')[0])/99, axis=1)
         self.matchs['away_def_press'] = self.matchs.apply(lambda x: dict_key_checker(
             self.teams_def_dict, x['away_team_api_id'], x['date'].split('-')[0])/99, axis=1)
 
-        """ self.matchs['diff_def_press'] = self.matchs['home_def_press'] - self.matchs['away_def_press']"""
+        self.matchs['diff_def_press'] = self.matchs['home_def_press'] - \
+            self.matchs['away_def_press']
 
-        """self.matchs.drop(
-            ['home_build_up', 'away_build_up', 'home_def_press', 'away_def_press'], axis=1, inplace=True)
-        """
         for index, row in self.matchs.iterrows():
             nbr_def_home, nbr_mid_home, nbr_att_home = get_nbr_players_by_lines(
                 row['home_form'])
@@ -113,7 +111,7 @@ class Data_Engineering:
                 'away_player_overall_' + str(i) for i in range(nbr_def_away + nbr_mid_away+1, 12)]].mean()
 
             # Potential
-            """self.matchs.loc[index, 'home_def_pot'] = row.loc[[
+            self.matchs.loc[index, 'home_def_pot'] = row.loc[[
                 'home_player_potential_' + str(i) for i in range(1, nbr_def_home+1)]].mean()
             self.matchs.loc[index, 'home_mid_pot'] = row.loc[[
                 'home_player_potential_' + str(i) for i in range(nbr_def_home+1, nbr_def_home + nbr_mid_home+1)]].mean()
@@ -126,25 +124,25 @@ class Data_Engineering:
                 'away_player_potential_' + str(i) for i in range(nbr_def_away+1, nbr_def_away + nbr_mid_away+1)]].mean()
             self.matchs.loc[index, 'away_att_pot'] = row.loc[[
                 'away_player_potential_' + str(i) for i in range(nbr_def_away + nbr_mid_away+1, 12)]].mean()
-            """
-        """self.matchs['diff_def_overall'] = self.matchs['home_def_overall'] - \
+
+        self.matchs['diff_def_overall'] = self.matchs['home_def_overall'] - \
             self.matchs['away_def_overall']
         self.matchs['diff_mid_overall'] = self.matchs['home_mid_overall'] - \
             self.matchs['away_mid_overall']
         self.matchs['diff_att_overall'] = self.matchs['home_att_overall'] - \
-            self.matchs['away_att_overall']"""
+            self.matchs['away_att_overall']
 
-        """self.matchs['diff_att_home_def_away'] = self.matchs['home_att_overall'] - \
+        self.matchs['diff_att_home_def_away'] = self.matchs['home_att_overall'] - \
             self.matchs['away_def_overall']
         self.matchs['diff_def_home_att_away'] = self.matchs['home_def_overall'] - \
-            self.matchs['away_att_overall']"""
+            self.matchs['away_att_overall']
 
-        """self.matchs['diff_def_pot'] = self.matchs['home_def_pot'] - \
+        self.matchs['diff_def_pot'] = self.matchs['home_def_pot'] - \
             self.matchs['away_def_pot']
         self.matchs['diff_mid_pot'] = self.matchs['home_mid_pot'] - \
             self.matchs['away_mid_pot']
         self.matchs['diff_att_pot'] = self.matchs['home_att_pot'] - \
-            self.matchs['away_att_pot']"""
+            self.matchs['away_att_pot']
 
         """self.matchs.drop(
             ['home_team_api_id', 'away_team_api_id', 'stage'], axis=1, inplace=True)
@@ -155,8 +153,11 @@ class Data_Engineering:
         self.matchs.drop(self.matchs.select(
             lambda col: col.startswith('away_player'), axis=1), axis=1, inplace=True)
 
-        """self.matchs.drop(self.matchs[['home_def_overall', 'home_mid_overall', 'home_att_overall', 'away_def_overall', 'away_mid_overall', 'away_att_overall']], axis=1, inplace=True)
-        """
+        self.matchs = self.matchs.drop(['home_build_up', 'away_build_up', 'home_def_press', 'away_def_press', 'home_def_overall',
+                                        'home_mid_overall', 'home_att_overall', 'away_def_overall', 'away_mid_overall',
+                                        'away_att_overall', 'home_def_pot', 'home_mid_pot', 'home_att_pot', 'away_def_pot',
+                                        'away_mid_pot', 'away_att_pot'], axis=1)
+
         return self.matchs
 
 
