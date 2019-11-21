@@ -156,7 +156,7 @@ class Data_Engineering:
         self.matchs = self.matchs.drop(['home_build_up', 'away_build_up', 'home_def_press', 'away_def_press', 'home_def_overall',
                                         'home_mid_overall', 'home_att_overall', 'away_def_overall', 'away_mid_overall',
                                         'away_att_overall', 'home_def_pot', 'home_mid_pot', 'home_att_pot', 'away_def_pot',
-                                        'away_mid_pot', 'away_att_pot'], axis=1)
+                                        'away_mid_pot', 'away_att_pot', 'date'], axis=1)
 
         return self.matchs
 

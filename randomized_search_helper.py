@@ -6,10 +6,10 @@ Modified for our needs
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 
 
-class EstimatorSelectionHelper:
+class RandomizedSearchHelper:
 
     def __init__(self, models, params):
         if not set(models.keys()).issubset(set(params.keys())):
@@ -28,14 +28,14 @@ class EstimatorSelectionHelper:
     def get_gs(self, key):
         return self.grid_searches[key]
 
-    def fit(self, X, y, cv=3, n_jobs=-1, verbose=1, scoring=None, refit=False):
+    def fit(self, X, y, cv=5, n_jobs=-1, verbose=1, scoring=None, refit=False):
         for key in self.keys:
-            print("Running GridSearchCV for %s." % key)
+            print("Running RandomizedSearchCV for %s." % key)
             model = self.models[key]
             params = self.params[key]
-            gs = GridSearchCV(model, params, cv=cv, n_jobs=n_jobs,
-                              verbose=verbose, scoring=scoring, refit=refit,
-                              return_train_score=True)
+            gs = RandomizedSearchCV(model, params, n_iter=30, cv=cv, n_jobs=n_jobs,
+                                    verbose=verbose, scoring=scoring, refit=refit,
+                                    return_train_score=True)
             gs.fit(X, y)
             self.grid_searches[key] = gs
 
