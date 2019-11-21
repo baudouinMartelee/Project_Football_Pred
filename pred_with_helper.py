@@ -65,14 +65,14 @@ print("*******Data Engineering for the Test Set*******")
 # matchsTest = Data_Engineering(
 # matchsTest, player_attr, teams, team_attr, matchsTrain).run()
 
-matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
+#matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
 # matchsTest.to_csv(r'./matchsTestEngineerd.csv')
 
 label = matchsTrain[['label']]
 matchsTrain.drop(columns=['label', 'home_team_goal',
                           'away_team_goal'], inplace=True)
 
-matchsTrain.to_csv(r'./matchsTrainEngineerdWithoutLabel.csv')
+#matchsTrain.to_csv(r'./matchsTrainEngineerdWithoutLabel.csv')
 
 ###################################
 #        CLEANING DATA            #
@@ -82,6 +82,8 @@ matchsTrainCleaned = Data_Cleaning(matchsTrain).run()
 print("*******Data Cleaning for the Test Set*******")
 # matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
+
+#matchsTrainCleaned.to_csv(r'./matchsTrainCleaned.csv')
 # PCA
 """
 
@@ -183,10 +185,12 @@ params = {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1],
         'penalty': ['l2'],
         'solver': ['lbfgs', 'saga']},
+    
     'KNN': {
         'n_neighbors': [1, 5, 10, 25, 50, 100],
         'weights': ['uniform', 'distance'],
         'algorithm': ['auto', 'ball_tree', 'kd_tree']},
+    
     'DT': {
         'criterion': ['gini', 'entropy'],
         'max_depth': [1, 2, 15, 20, 30, 40, 50],
@@ -198,9 +202,19 @@ params = {
     },
     
 }"""
+    
+params = {
+        'KNN': {
+                'n_neighbors': [1, 5, 10, 25, 50, 100],
+                'weights': ['uniform', 'distance'],
+                'algorithm': ['auto', 'ball_tree', 'kd_tree']
+                }
+    
+        }
+
 
 models = {
-    'RandomForestClassifier': RandomForestClassifier(),
+    'KNN': KNeighborsClassifier(),
 }
 
 params = {
