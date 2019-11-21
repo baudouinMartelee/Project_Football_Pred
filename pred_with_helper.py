@@ -52,49 +52,55 @@ matchsTrain = Data_Engineering.add_labels(matchsTrain)
 matchsTrain = Data_Engineering(
     matchsTrain, player_attr, teams, team_attr).run()
 
-"""
-from matplotlib import pyplot as plt
-import seaborn as sns
+matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
 
-plt.figure(figsize=(40,15))
-sns.heatmap(matchsTrain.corr(),annot=True,cmap='coolwarm', linewidths=.5)
-#matchsTrain.to_csv(r'./csv/matchsTrainFinal.csv')
+matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
+"""
+plt.figure(figsize=(40, 15))
+sns.heatmap(matchsTrain.corr(), annot=True, cmap='coolwarm', linewidths=.5)
+# matchsTrain.to_csv(r'./csv/matchsTrainFinal.csv')
 correlation = matchsTrain.corr()
 """
 print("*******Data Engineering for the Test Set*******")
 # matchsTest = Data_Engineering(
 # matchsTest, player_attr, teams, team_attr, matchsTrain).run()
 
-matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
+# matchsTrain.to_csv(r'./matchsTrainEngineerd.csv')
 # matchsTest.to_csv(r'./matchsTestEngineerd.csv')
 
 label = matchsTrain[['label']]
 matchsTrain.drop(columns=['label', 'home_team_goal',
                           'away_team_goal'], inplace=True)
 
-matchsTrain.to_csv(r'./matchsTrainEngineerdWithoutLabel.csv')
+# matchsTrain.to_csv(r'./matchsTrainEngineerdWithoutLabel.csv')
+
+matchsTrain2 = pd.read_csv(r'./matchsTrainEngineerd.csv')
+label = matchsTrain2[['label']]
+matchsTrain2.drop(columns=['label', 'home_team_goal',
+                           'away_team_goal', 'Unnamed: 0'], inplace=True)
 
 ###################################
 #        CLEANING DATA            #
 ###################################
 print("*******Data Cleaning for the Train Set*******")
-matchsTrainCleaned = Data_Cleaning(matchsTrain).run()
+matchsTrainCleaned = Data_Cleaning(matchsTrain2).run()
 print("*******Data Cleaning for the Test Set*******")
 # matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
 # PCA
-"""
 
-pca = PCA(n_components=30)
-pca.fit_transform(matchsTrain)
+
+pca = PCA(n_components=40)
+pca.fit_transform(matchsTrainCleaned)
 
 plt.figure()
 plt.plot(np.cumsum(pca.explained_variance_ratio_))
+plt.axhline(y=1, color='r', linestyle='-')
 plt.xlabel('Number of Components')
 plt.ylabel('Variance (%)')  # for each component
-plt.title('Pulsar Dataset Explained Variance')
+plt.title('PCA')
 plt.show()
-
+"""
 pca = PCA(n_components=29)
 matchsTrainPca = pca.fit_transform(matchsTrain)"""
 
@@ -121,14 +127,14 @@ X_train, X_test, y_train, y_test = train_test_split(
     'XGBClassifier': XGBClassifier(),
     'SGDClassifier': SGDClassifier(),
     'KNN': KNeighborsClassifier(),
-    'RidgeClassifier' : RidgeClassifier(),
-    'BaggingClassifier' : BaggingClassifier(RandomForestClassifier()),
-    'LogisticRegression' : LogisticRegression(solver='lbfgs', multi_class='multinomial',random_state=1)"""
+    'RidgeClassifier': RidgeClassifier(),
+    'BaggingClassifier': BaggingClassifier(RandomForestClassifier()),
+    'LogisticRegression': LogisticRegression(solver='lbfgs', multi_class='multinomial', random_state=1)"""
 
 
 """TEST 0.5238
 'LogisticRegression': LogisticRegression(multi_class='multinomial', random_state=1),
-    'RandomForestClassifier': RandomForestClassifier(class_weight = 'balanced'),
+    'RandomForestClassifier': RandomForestClassifier(class_weight='balanced'),
     'SGDClassifier': SGDClassifier(),
     'SVM': SVC(),
     'RandomForestClassifier': {
@@ -196,7 +202,7 @@ params = {
     'NB': {
         'var_smoothing': np.logspace(0, -9, num=100)
     },
-    
+
 }"""
 
 models = {
@@ -205,21 +211,20 @@ models = {
 
 params = {
     'RandomForestClassifier': {
-        'n_estimators': [30, 40, 50, ],
-        'max_depth': [30, 40, 50, 60, ],
+        'n_estimators': [10, 20, 30, 40, 50],
+        'max_depth': [10, 20, 30, 40, 50, 60],
         'min_samples_leaf': [10, 20, 30, 40],
         'max_features': ['sqrt', 'log2', 'auto'],
         'min_samples_split': [2, 5, 10, 15]},
 }
 
-print(params.get('RandomForestClassifier'))
 
 helper = EstimatorSelectionHelper(models, params)
 helper.fit(X_train, y_train, scoring="f1_micro", n_jobs=6)
 
 scoring_table = helper.score_summary()
 
-#t_scoring = scoring_table.T
+# t_scoring = scoring_table.T
 
 
 ax = sns.lineplot(data=params.get('RandomForestClassifier').get('max_depth'))
