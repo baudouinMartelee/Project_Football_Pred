@@ -41,11 +41,13 @@ class Data_Engineering:
 
         # Fill the missing coordinates with the most recurrent ones
 
-        self.matchs[['home_player_'+str(i) for i in range(1, 12)]].fillna(0)
+        """self.matchs[['home_player_'+str(i) for i in range(1, 12)]].fillna(0)
         self.matchs[['away_player_'+str(i) for i in range(1, 12)]].fillna(0)
 
         self.matchs = self.matchs.apply(
-            lambda x: x.fillna(x.value_counts().index[0]))
+            lambda x: x.fillna(x.value_counts().index[0]))"""
+
+        self.matchs.dropna(how='any', inplace=True)
 
         # Create a formation with the Y coordinates
         print("Creating formations...")
