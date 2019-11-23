@@ -67,6 +67,49 @@ label = matchsTrain[['label']]
 matchsTrain.drop(columns=['label', 'home_team_goal',
                           'away_team_goal'], inplace=True)
 
+numTrain = matchsTrain.iloc[:,10:20]
+
+
+fig3,ax3 = plt.subplots(figsize=(40,20))
+ax = sns.boxplot(data=numTrain,fliersize=20)
+ax.tick_params(labelsize=25)
+plt.show()
+
+q4 = numTrain['diff_build_up'].quantile(1)
+q0 =  numTrain['diff_build_up'].quantile(0)
+
+numTrain['diff_build_up'].describe()
+
+q4 = numTrain['diff_def_overall'].quantile(1)
+q0 =  numTrain['diff_def_overall'].quantile(0)
+
+
+Q1 = numTrain['diff_build_up'].quantile(0.25)
+Q3 = numTrain['diff_build_up'].quantile(0.75)
+IQR = Q3 - Q1 #ecart-interquartile
+    
+borneSup = Q3 + 1.5 * IQR
+borneInf = Q1 - 1.5 * IQR
+
+matchsTrainWithoutOutliers = matchsTrain.copy()
+
+for index, row in matchsTrainWithoutOutliers.iterrows():
+    if( (row['diff_build_up'] > borneSup) | (row['diff_build_up'] < borneInf)) :
+           matchsTrainWithoutOutliers =  matchsTrainWithoutOutliers.drop(row,axis=2)
+            
+    
+    
+tableIndexOutliers = list(filter(lambda x: x < borneInf,numTrain['diff_build_up']))
+    
+
+findOutliers(numTrain,'diff_build_up')
+
+
+fig3,ax3 = plt.subplots(figsize=(40,20))
+ax = sns.boxplot(data=numTrain,fliersize=20)
+ax.tick_params(labelsize=25)
+plt.show()
+
 
 ###################################
 #        CLEANING DATA            #
@@ -81,28 +124,51 @@ X_train, X_test, y_train, y_test = train_test_split(
     matchsTrainCleaned, label, random_state=5)
 
 
+#### SANS PCA
+
+models = {
+    'AdaBoostClassifier': AdaBoostClassifier(base_estimator=RandomForestClassifier())
+}
+
+params = {
+        'AdaBoostClassifier': {
+            'n_estimators': random.randint(10,1000),
+            'learning_rate': random.uniform(low=0, high=5, size = 10),
+            'random_state': [1]
+        }
+        
+}
+
+
+
+helper = RandomizedSearchHelper(models, params)
+helper.fit(X_train, y_train, scoring="accuracy", n_jobs=6)
+
+scoring_table = helper.score_summary()
+    
+#### AVEC PCA
+
+
+
 pca = PCA()
 
 # define the pipe
 pipe = Pipeline([
     ('pca', pca),
-    ('rf', RandomForestClassifier(random_state=42))
+    ('AdaBoostClassifier',AdaBoostClassifier(base_estimator=RandomForestClassifier()))
 ])
 
-models = {
-    'rf_pca': pipe
+models_pca = {
+    'ada_pca': pipe
 }
 
-params = {
-    'rf_pca': {
+params_pca = {
+    'ada_pca': {
         'pca__whiten': [True, False],
         'pca__n_components': random.randint(30, 41, 20),
-        'rf__n_estimators': random.randint(1, 300, 20),
-        'rf__max_depth': random.randint(1, 300, 20),
-        'rf__max_features': ['sqrt', 'log2', 'auto'],
-        'rf__min_samples_split': random.randint(1, 100, 20),
-        'rf__min_samples_leaf': random.randint(2, 200, 20),
-
+        'ada__n_estimators': random.uniform(low=10, high=1000, size = 10),
+        'ada__learning_rate': random.uniform(low=0, high=5, size = 10),
+        'ada__random_state': [1]
     }
 }
 
@@ -117,26 +183,7 @@ print("Test: " + str(accuracy_score(y_test, te_pred)))
 grid.best_params_
 """
 
-helper = RandomizedSearchHelper(models, params)
-helper.fit(X_train, y_train, scoring="accuracy", n_jobs=6)
+helper_pca = RandomizedSearchHelper(models_pca, params_pca)
+helper_pca.fit(X_train, y_train, scoring="accuracy", n_jobs=6)
 
-scoring_table = helper.score_summary()
-
-models = {
-    'RandomForestClassifier': RandomForestClassifier(),
-}
-
-params = {
-    'RandomForestClassifier': {
-        'n_estimators': [10, 20, 30, 40, 50],
-        'max_depth': [10, 20, 30, 40, 50, 60],
-        'min_samples_leaf': [10, 20, 30, 40],
-        'max_features': ['sqrt', 'log2', 'auto'],
-        'min_samples_split': [2, 5, 10, 15]},
-}
-
-
-helper = EstimatorSelectionHelper(models, params)
-helper.fit(X_train, y_train, scoring="acurracy", n_jobs=6)
-
-scoring_table = helper.score_summary()
+scoring_table_pca = helper_pca.score_summary()

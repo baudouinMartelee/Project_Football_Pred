@@ -181,10 +181,8 @@ params = {
         'kernel': ['linear'],
         'random_state': [1]},
     'SGDClassifier': {
-        # learning rate
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.03],
         'max_iter': [1000],  # number of epochs
-        # 'loss': ['hinge'],  # logistic regression,
         'loss': ['hinge', 'log', 'modified_huber'],
         'penalty': ['l2', 'l1', 'none', 'elasticnet']},
     'LogisticRegression': {
@@ -210,26 +208,18 @@ params = {
 }"""
     
 params = {
-        'KNN': {
-                'n_neighbors': [1, 5, 10, 25, 50, 100],
-                'weights': ['uniform', 'distance'],
-                'algorithm': ['auto', 'ball_tree', 'kd_tree']
-                }
+        'SGDClassifier': {
+            'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.03],
+            'max_iter': [1000],  # number of epochs
+            'loss': ['hinge', 'log', 'modified_huber'],
+            'penalty': ['l2', 'l1', 'none', 'elasticnet']
+            }
     
         }
 
 
 models = {
-    'KNN': KNeighborsClassifier(),
-}
-
-params = {
-    'RandomForestClassifier': {
-        'n_estimators': [10, 20, 30, 40, 50],
-        'max_depth': [10, 20, 30, 40, 50, 60],
-        'min_samples_leaf': [10, 20, 30, 40],
-        'max_features': ['sqrt', 'log2', 'auto'],
-        'min_samples_split': [2, 5, 10, 15]},
+    'SGD':SGDClassifier(),
 }
 
 

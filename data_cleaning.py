@@ -43,7 +43,7 @@ class Data_Cleaning:
 
         # ,'home_team_name','away_team_name','home_form','away_form']
         categorical_attrib = ['season','home_form','away_form']
-       self.matchs[categorical_attrib] = self.matchs[categorical_attrib].apply( lambda x: x.astype('category'))
+        self.matchs[categorical_attrib] = self.matchs[categorical_attrib].apply( lambda x: x.astype('category'))
 
         # Utilisation de pipeline pour clean les data
 
