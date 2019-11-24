@@ -40,14 +40,12 @@ class Data_Engineering:
         ######## FEATURES ENGINEERING ##############
 
         # Fill the missing coordinates with the most recurrent ones
-
+        #matchsTrain.dropna(how='any', inplace=True)
         """self.matchs[['home_player_'+str(i) for i in range(1, 12)]].fillna(0)
         self.matchs[['away_player_'+str(i) for i in range(1, 12)]].fillna(0)
 
         self.matchs = self.matchs.apply(
             lambda x: x.fillna(x.value_counts().index[0]))"""
-
-        self.matchs.dropna(how='any', inplace=True)
 
         # Create a formation with the Y coordinates
         print("Creating formations...")
@@ -56,6 +54,9 @@ class Data_Engineering:
         self.matchs['away_form'] = self.matchs.apply(
             lambda x: create_formation(x, False), axis=1)
 
+        self.matchs[['home_form', 'away_form']] = self.matchs[['home_form', 'away_form']].apply(
+            lambda x: x.fillna(x.value_counts().index[0]))
+
         # Cleaning the date (take only dd-mm-yyy)
         self.matchs['date'] = self.matchs['date'].apply(
             lambda x: x.split(' ')[0])
@@ -63,16 +64,16 @@ class Data_Engineering:
         print('Putting overall teams ratings...')
         for i in range(1, 12):
             self.matchs['home_player_overall_'+str(i)] = self.matchs.apply(
-                lambda x: dict_key_checker(self.ply_attr_overall_dict, int(x['home_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
+                lambda x: dict_key_checker(self.ply_attr_overall_dict, x['home_player_'+str(i)], x['date'].split('-')[0])/99, axis=1)
             self.matchs['away_player_overall_'+str(i)] = self.matchs.apply(
-                lambda x: dict_key_checker(self.ply_attr_overall_dict, int(x['away_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
+                lambda x: dict_key_checker(self.ply_attr_overall_dict, x['away_player_'+str(i)], x['date'].split('-')[0])/99, axis=1)
 
         print('Putting overall teams potential...')
         for i in range(1, 12):
             self.matchs['home_player_potential_'+str(i)] = self.matchs.apply(
-                lambda x: dict_key_checker(self.ply_attr_pot_dict, int(x['home_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
+                lambda x: dict_key_checker(self.ply_attr_pot_dict, x['home_player_'+str(i)], x['date'].split('-')[0])/99, axis=1)
             self.matchs['away_player_potential_'+str(i)] = self.matchs.apply(
-                lambda x: dict_key_checker(self.ply_attr_pot_dict, int(x['away_player_'+str(i)]), x['date'].split('-')[0])/99, axis=1)
+                lambda x: dict_key_checker(self.ply_attr_pot_dict, x['away_player_'+str(i)], x['date'].split('-')[0])/99, axis=1)
 
         print("Putting buildUp and defence press...")
         self.matchs['home_build_up'] = self.matchs.apply(lambda x: dict_key_checker(
@@ -92,6 +93,7 @@ class Data_Engineering:
             self.matchs['away_def_press']
 
         for index, row in self.matchs.iterrows():
+
             nbr_def_home, nbr_mid_home, nbr_att_home = get_nbr_players_by_lines(
                 row['home_form'])
             nbr_def_away, nbr_mid_away, nbr_att_away = get_nbr_players_by_lines(
@@ -146,9 +148,9 @@ class Data_Engineering:
         self.matchs['diff_att_pot'] = self.matchs['home_att_pot'] - \
             self.matchs['away_att_pot']
 
-        """self.matchs.drop(
-            ['home_team_api_id', 'away_team_api_id', 'stage'], axis=1, inplace=True)
-        """
+        # self.matchs.drop(
+        # ['home_team_api_id', 'away_team_api_id', 'stage'], axis=1, inplace=True)
+
         self.matchs.drop(self.matchs.select(
             lambda col: col.startswith('home_player'), axis=1), axis=1, inplace=True)
 
@@ -181,6 +183,10 @@ def create_formation(row, home):
     else:
         list_form = row.loc[row.index.str.startswith(
             'away_player_Y')].tolist()[1:]
+
+    if(True in np.isnan(list_form)):
+        return np.nan
+
     # Will create a dict with the occurences of the players's positions
     counter = Counter(list_form)
     couter_val = counter.values()
@@ -190,8 +196,8 @@ def create_formation(row, home):
 
 
 def dict_key_checker(attr_dict, api_id, date):
-    if(api_id == 0):
-        return 0
+    if(api_id is np.nan):
+        return np.nan
     try:
         res = attr_dict[(api_id, str(date))]
     except KeyError:
@@ -206,6 +212,8 @@ def dict_key_checker(attr_dict, api_id, date):
 
 
 def get_nbr_players_by_lines(form):
+    if(form == "Unknowned"):
+        return np.nan
     list_form = list(form)
     list_form = [int(x) for x in list_form]
     defenders = list_form[0] + 1  # plus le gardien
@@ -253,14 +261,3 @@ def create_team_attr_chance_dict(teams_attr, key):
 def create_team_name_dict(teams):
     tms = teams[['team_api_id', 'team_short_name']]
     return tms.set_index('team_api_id').to_dict()['team_short_name']
-
-
-"""
-Hypotheses :
-    -formations
-    -notes des joueurs
-    -
-
-
-
-"""
