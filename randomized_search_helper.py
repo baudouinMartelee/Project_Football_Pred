@@ -28,12 +28,12 @@ class RandomizedSearchHelper:
     def get_gs(self, key):
         return self.grid_searches[key]
 
-    def fit(self, X, y, cv=5, n_jobs=-1, verbose=1, scoring=None, refit=False):
+    def fit(self, X, y, cv=5, n_jobs=-1, verbose=1, scoring=None, refit=False, n_iter=30):
         for key in self.keys:
             print("Running RandomizedSearchCV for %s." % key)
             model = self.models[key]
             params = self.params[key]
-            gs = RandomizedSearchCV(model, params, n_iter=30, cv=cv, n_jobs=n_jobs,
+            gs = RandomizedSearchCV(model, params, n_iter=n_iter, cv=cv, n_jobs=n_jobs,
                                     verbose=verbose, scoring=scoring, refit=refit,
                                     return_train_score=True)
             gs.fit(X, y)
