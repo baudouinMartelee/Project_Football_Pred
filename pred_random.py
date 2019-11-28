@@ -34,7 +34,6 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import accuracy_score
 from randomized_search_helper import RandomizedSearchHelper
 from scipy.stats import uniform
-from xgboost import XGBClassifier
 warnings.simplefilter("ignore")
 
 ##################################
@@ -66,11 +65,7 @@ matchsTest = Data_Engineering(
     matchsTest, player_attr, teams, team_attr, matchsTrain).run()
 
 
-label = matchsTrain[['label']]
-matchsTrain.drop(columns=['label', 'home_team_goal',
-                          'away_team_goal'], inplace=True)
-
-numTrain = matchsTrain.iloc[:,10:20]
+numTrain = matchsTrain.iloc[:,13:23]
 
 
 fig3,ax3 = plt.subplots(figsize=(40,20))
@@ -78,38 +73,51 @@ ax = sns.boxplot(data=numTrain,fliersize=20)
 ax.tick_params(labelsize=25)
 plt.show()
 
-q4 = numTrain['diff_build_up'].quantile(1)
-q0 =  numTrain['diff_build_up'].quantile(0)
 
-numTrain['diff_build_up'].describe()
-
-q4 = numTrain['diff_def_overall'].quantile(1)
-q0 =  numTrain['diff_def_overall'].quantile(0)
-
-
-Q1 = numTrain['diff_build_up'].quantile(0.25)
-Q3 = numTrain['diff_build_up'].quantile(0.75)
-IQR = Q3 - Q1 #ecart-interquartile
+def removeOutliers(dataset,feature):
     
-borneSup = Q3 + 1.5 * IQR
-borneInf = Q1 - 1.5 * IQR
-
-matchsTrainWithoutOutliers = matchsTrain.copy()
-
-for index, row in matchsTrainWithoutOutliers.iterrows():
-    if( (row['diff_build_up'] > borneSup) | (row['diff_build_up'] < borneInf)) :
-           matchsTrainWithoutOutliers =  matchsTrainWithoutOutliers.drop(row,axis=2)
-            
+    indexing = []
+    
+    Q1 = dataset[feature].quantile(0.25)
+    Q3 = dataset[feature].quantile(0.75)
+    IQR = Q3 - Q1 #ecart-interquartile
+        
+    borneSup = Q3 + 1.5 * IQR
+    borneInf = Q1 - 1.5 * IQR
     
     
-tableIndexOutliers = list(filter(lambda x: x < borneInf,numTrain['diff_build_up']))
+    for index, row in dataset.iterrows():
+        if( (row[feature] > borneSup) | (row[feature] < borneInf)) :
+            indexing.append(index)
     
+    datasetWithoutOutliers = dataset.drop(indexing,axis=0)
+    return datasetWithoutOutliers
 
-findOutliers(numTrain,'diff_build_up')
+
+tableOk = removeOutliers(matchsTrain,'diff_build_up')
+tableOk2 = removeOutliers(tableOk,'diff_def_press')
+tableOk3 = removeOutliers(tableOk2,'diff_def_overall')
+tableOk4 = removeOutliers(tableOk3,'diff_mid_overall')
+tableOk5 = removeOutliers(tableOk4,'diff_att_overall')
+tableOk6 = removeOutliers(tableOk5,'diff_att_home_def_away')
+tableOk7 = removeOutliers(tableOk6,'diff_def_home_att_away')
+tableOk8 = removeOutliers(tableOk7,'diff_def_pot')
+tableOk9 = removeOutliers(tableOk8,'diff_mid_pot')
+tableOk10 = removeOutliers(tableOk9,'diff_att_pot')
+
+matchsTrain2 = pd.DataFrame(tableOk10)
 
 
-fig3,ax3 = plt.subplots(figsize=(40,20))
-ax = sns.boxplot(data=numTrain,fliersize=20)
+
+label = matchsTrain2[['label']]
+matchsTrain2.drop(columns=['label', 'home_team_goal',
+                          'away_team_goal'], inplace=True)
+
+
+numTrain2 = matchsTrain2.iloc[:,13:23]
+
+fig3,ax3 = plt.subplots(figsize=(20,10))
+ax = sns.boxplot(data=numTrain2,fliersize=20)
 ax.tick_params(labelsize=25)
 plt.show()
 
@@ -118,7 +126,7 @@ plt.show()
 #        CLEANING DATA            #
 ###################################
 print("*******Data Cleaning for the Train Set*******")
-matchsTrainCleaned = Data_Cleaning(matchsTrain).run()
+matchsTrainCleaned = Data_Cleaning(matchsTrain2).run()
 print("*******Data Cleaning for the Test Set*******")
 matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
@@ -190,11 +198,11 @@ models = {
 
 params = {
     'rf_pca': {
-        'rf__n_estimators': random.randint(140, 350, 50),
-        'rf__max_depth': random.randint(11, 400, 50),
+        'rf__n_estimators': random.randint(1, 500, 50),
+        'rf__max_depth': random.randint(1, 500, 50),
         'rf__max_features': ['sqrt', 'log2', 'auto'],
-        'rf__min_samples_split': random.randint(110, 400, 50),
-        'rf__min_samples_leaf': random.randint(100, 300, 50),
+        'rf__min_samples_split': random.randint(1, 500, 50),
+        'rf__min_samples_leaf': random.randint(1, 500, 50),
     }
 }
 """
