@@ -1,45 +1,84 @@
-from sklearn.preprocessing import LabelEncoder
+# IMPORTS
+import sqlite3
 import pandas as pd
 import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
 from collections import Counter
+# Enlever les warnings
 import warnings
+from sklearn.pipeline import Pipeline
 warnings.simplefilter("ignore")
 
 
-class Data_Engineering:
+class Fetching(BaseEstimator, TransformerMixin):
+    def __init__(self, connect_string):
+        self.connect_string = connect_string
 
-    def __init__(self, matchs, player_attr, teams, teams_attr, matchsTrain=None):
-        self.matchs = matchs
-        self.player_attr = player_attr
-        self.ply_attr_overall_dict = create_player_overall_dict(player_attr)
-        self.ply_attr_pot_dict = create_player_pot_dict(player_attr)
-        self.teams_name_dict = create_team_name_dict(teams)
-        self.teams_shooting_dict = create_team_attr_chance_dict(
-            teams_attr, 'buildUpPlayPassing')
-        self.teams_def_dict = create_team_attr_chance_dict(
-            teams_attr, 'defencePressure')
-        if(matchsTrain is None):
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        print("******* Data Fetching *******")
+        dat = sqlite3.connect(self.connect_string)
+
+        table = ["Country", "League", "X_Train", "X_Test", "Player", "Player_Attributes",
+                 "Team", "Team_Attributes"]
+
+        df_dict = {}
+
+        for name in table:
+            query = dat.execute("SELECT * From " + name)
+            cols = [column[0] for column in query.description]
+            results = pd.DataFrame.from_records(
+                data=query.fetchall(), columns=cols)
+            df_dict[name.lower()] = results
+
+        return df_dict
+
+
+class CleaningAndPreparing(BaseEstimator, TransformerMixin):
+
+    def __init__(self, isMatchsTrain=None):
+        self.matchs = None
+        self.player_attr = None
+        self.ply_attr_overall_dict = None
+        self.ply_attr_pot_dict = None
+        self.teams_name_dict = None
+        self.teams_shooting_dict = None
+        self.teams_def_dict = None
+        # On regarde si on applique la transformation au train set ou au test set
+        if(isMatchsTrain is None):
             self.is_test_set = False
         else:
             self.is_test_set = True
+        # Nous retenons les formations les plus récurrentes pour les injecter dans le test set
+        self.best_formations = {
+            'home_form': "",
+            'away_form': ""
+        }
 
-    @staticmethod
-    def add_labels(matchs):
-        # Create labels
-        matchs['label'] = matchs.apply(lambda row: det_label(
-            row['home_team_goal'], row['away_team_goal']), axis=1)
-        return matchs
+    def fit(self, X, y=None):
+        return self
 
-    def run(self):
+    def transform(self, X):
+        print("******* Data Cleaning and Preparing *******")
+        # Initialisation apd du X
+        if(self.is_test_set):
+            self.matchs = X['x_test']
+        else:
+            self.matchs = X['x_train']
+
+        self.ply_attr_overall_dict = create_player_overall_dict(
+            X['player_attributes'])
+        self.ply_attr_pot_dict = create_player_pot_dict(X['player_attributes'])
+        self.teams_shooting_dict = create_team_attr_chance_dict(
+            X['team_attributes'], 'buildUpPlayPassing')
+        self.teams_def_dict = create_team_attr_chance_dict(
+            X['team_attributes'], 'defencePressure')
+
         # Droping irrelevent columns
         self.matchs.drop(['country_id', 'league_id',
-                          'match_api_id', 'Unnamed: 0'], axis=1, inplace=True)
-
-        print("Putting corresponding teams names...")
-        self.matchs['home_team_name'] = self.matchs.apply(
-            lambda x: self.teams_name_dict[x['home_team_api_id']], axis=1)
-        self.matchs['away_team_name'] = self.matchs.apply(
-            lambda x: self.teams_name_dict[x['away_team_api_id']], axis=1)
+                          'match_api_id'], axis=1, inplace=True)
 
         ######## FEATURES ENGINEERING ##############
 
@@ -51,6 +90,11 @@ class Data_Engineering:
             lambda x: create_formation(x, False), axis=1)
 
         if(self.is_test_set == False):
+            # Nous sauvgardons les formations
+            """self.best_formations['home_form'] = self.matchs['home_form'].value_counts(
+            ).index[0]
+            self.best_formations['away_form'] = self.matchs['away_form'].value_counts(
+            ).index[0]"""
             self.matchs[['home_form', 'away_form']] = self.matchs[['home_form', 'away_form']].apply(
                 lambda x: x.fillna(x.value_counts().index[0]))
         else:
@@ -256,6 +300,9 @@ def create_team_attr_chance_dict(teams_attr, key):
     return tms_attr.to_dict()[key]
 
 
-def create_team_name_dict(teams):
-    tms = teams[['team_api_id', 'team_short_name']]
-    return tms.set_index('team_api_id').to_dict()['team_short_name']
+pipe = Pipeline([
+    ('fetch', Fetching('./database/database.sqlite')),
+    ('prepare_clean', CleaningAndPreparing())
+])
+
+test = pipe.fit_transform(None)

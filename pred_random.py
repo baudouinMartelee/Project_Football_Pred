@@ -35,6 +35,7 @@ from sklearn.metrics import accuracy_score
 from randomized_search_helper import RandomizedSearchHelper
 from scipy.stats import uniform
 from xgboost import XGBClassifier
+from sklearn.feature_selection import SelectFromModel
 warnings.simplefilter("ignore")
 
 ##################################
@@ -80,81 +81,25 @@ print("*******Data Cleaning for the Test Set*******")
 matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
 
-X_train, X_test, y_train, y_test = train_test_split(
-    matchsTrainCleaned, label, random_state=5)
-
-
-pca = PCA()
-
-# define the pipe
-pipe_rf = Pipeline([
-    ('rf', RandomForestClassifier(random_state=42))
-])
-
-pipe_log = Pipeline([
-    ('log', LogisticRegression(random_state=42))
-])
-
-pipe_sgd = Pipeline([
-    ('sgd', SGDClassifier(random_state=42))
-])
-
-pipe_ada = Pipeline([
-    ('ada', AdaBoostClassifier(random_state=42))
-])
+"""X_train, X_test, y_train, y_test = train_test_split(
+    matchsTrainCleaned, label, random_state=5)"""
 
 
 models = {
-    'ada_pca': pipe_ada
+    'rf': RandomForestClassifier(random_state=42)
 }
 
 params = {
-    'ada_pca': {
-        'ada__n_estimators': random.randint(10, 2000, 50),
-        'ada__learning_rate': random.uniform(low=0.0001, high=1, size=50),
+    'rf': {
+        'n_estimators': random.randint(140, 350, 30),
+        'max_depth': random.randint(11, 400, 30),
+        'max_features': random.randint(1, 23, 30),
+        'min_samples_split': random.randint(110, 400, 30),
+        'min_samples_leaf': random.randint(100, 300, 30),
+
     }
 }
 
-models = {
-    'rf_pca': pipe_rf
-}
-
-params = {
-    'rf_pca': {
-        'rf__n_estimators': random.randint(140, 350, 50),
-        'rf__max_depth': random.randint(11, 400, 50),
-        'rf__max_features': ['sqrt', 'log2', 'auto'],
-        'rf__min_samples_split': random.randint(110, 400, 50),
-        'rf__min_samples_leaf': random.randint(100, 300, 50),
-    }
-}
-"""
-models = {
-    'log_pca': pipe_log,
-    'rf_pca': pipe_rf,
-    'sgd_pca': pipe_sgd
-}
-
-params = {
-    'log_pca': {
-        'log__C': random.uniform(low=0.001, high=0.01, size=50),
-        'log__penalty': ['l2'],
-        'log__solver': ['lbfgs', 'saga'],
-        'log__multi_class': ['multinomial']},
-    'rf_pca': {
-        'rf__n_estimators': random.randint(140, 350, 50),
-        'rf__max_depth': random.randint(11, 400, 50),
-        'rf__max_features': ['sqrt', 'log2', 'auto'],
-        'rf__min_samples_split': random.randint(110, 400, 50),
-        'rf__min_samples_leaf': random.randint(100, 300, 50)},
-    'sgd_pca': {
-        'sgd__alpha': random.uniform(low=0.0001, high=0.5, size=50),
-        'sgd__max_iter': random.randint(1400, 5000, 50),
-        'sgd__loss': ['hinge', 'log', 'modified_huber'],
-        'sgd__penalty': ['l2', 'l1', 'none', 'elasticnet'],
-    }
-
-}"""
 
 helper = RandomizedSearchHelper(models, params)
 helper.fit(matchsTrainCleaned, label,
@@ -164,6 +109,14 @@ helper.fit(matchsTrainCleaned, label,
 # scoring="accuracy", n_jobs=6, n_iter=50, cv=3)
 
 scoring_table = helper.score_summary()
+params['rf'].keys()
+
+"""g = sns.FacetGrid(scoring_table, col="mean_score", hue="mean_score")
+for i in params['rf'].keys():
+    g.map(sns.scatterplot, i, hist=False, rug=True)"""
+
+"""scoring_table.subplot(x='mean_score', y=[
+                   'action', 'comedy'], figsize=(10, 5), grid=True)"""
 
 
 ###########ENSEMBLE MODEL###################
@@ -180,19 +133,18 @@ pipe_log = Pipeline([
 ])
 rf_clf = RandomForestClassifier(
     max_depth=helper.get_gs_best_params(
-        'rf_pca')['rf__max_depth'],
+        'rf')['max_depth'],
     min_samples_leaf=helper.get_gs_best_params(
-        'rf_pca')['rf__min_samples_leaf'],
+        'rf')['min_samples_leaf'],
     n_estimators=helper.get_gs_best_params(
-        'rf_pca')['rf__n_estimators'],
+        'rf')['n_estimators'],
     max_features=helper.get_gs_best_params(
-        'rf_pca')['rf__max_features'],
+        'rf')['max_features'],
     min_samples_split=helper.get_gs_best_params(
-        'rf_pca')['rf__min_samples_split'])
+        'rf')['min_samples_split'],
+    criterion=helper.get_gs_best_params(
+        'rf')['criterion'])
 
-pipe_rf = Pipeline([
-    ('rf', rf_clf)
-])
 
 sgd_clf = SGDClassifier(
     loss=helper.get_gs_best_params('sgd_pca')['sgd__loss'],
@@ -204,7 +156,7 @@ pipe_sgd = Pipeline([
     ('sgd', sgd_clf)
 ])
 voting_clf = VotingClassifier(
-    estimators=[('rnd', pipe_rf)], voting='hard', n_jobs=-1)
+    estimators=[('rnd', rf_clf)], voting='hard', n_jobs=-1)
 
 """
 voting_clf.fit(X_train, y_train)

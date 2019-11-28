@@ -1,14 +1,14 @@
-from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 import numpy as np
 from collections import Counter
+from sklearn.base import BaseEstimator, TransformerMixin
 import warnings
 warnings.simplefilter("ignore")
 
 
-class Data_Engineering:
+class DataCleaningAndPreparing(BaseEstimator, TransformerMixin):
 
-    def __init__(self, matchs, player_attr, teams, teams_attr, matchsTrain=None):
+    def __init__(self, matchs, player_attr, teams, teams_attr, isMatchsTrain=None):
         self.matchs = matchs
         self.player_attr = player_attr
         self.ply_attr_overall_dict = create_player_overall_dict(player_attr)
@@ -18,17 +18,27 @@ class Data_Engineering:
             teams_attr, 'buildUpPlayPassing')
         self.teams_def_dict = create_team_attr_chance_dict(
             teams_attr, 'defencePressure')
-        if(matchsTrain is None):
+        # On regarde si on applique la transformation au train set ou au test set
+        if(isMatchsTrain is None):
             self.is_test_set = False
         else:
             self.is_test_set = True
+        # Nous retenons les formations les plus récurrentes pour les injecter dans le test set
+        self.best_formations = {
+            'home_form': "",
+            'away_form': ""
+        }
 
+    # Methode pour ajouter le label
     @staticmethod
     def add_labels(matchs):
         # Create labels
         matchs['label'] = matchs.apply(lambda row: det_label(
             row['home_team_goal'], row['away_team_goal']), axis=1)
         return matchs
+
+    def fit(self, X, y=None):
+        return self
 
     def run(self):
         # Droping irrelevent columns
