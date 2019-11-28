@@ -87,6 +87,8 @@ matchsTrainCleaned = Data_Cleaning(matchsTrain2).run()
 print("*******Data Cleaning for the Test Set*******")
 # matchsTestCleaned = Data_Cleaning(matchsTest).run()
 
+
+#matchsTrainCleaned.to_csv(r'./matchsTrainCleaned.csv')
 # PCA
 
 
@@ -179,20 +181,20 @@ params = {
         'kernel': ['linear'],
         'random_state': [1]},
     'SGDClassifier': {
-        # learning rate
         'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.03],
         'max_iter': [1000],  # number of epochs
-        # 'loss': ['hinge'],  # logistic regression,
         'loss': ['hinge', 'log', 'modified_huber'],
         'penalty': ['l2', 'l1', 'none', 'elasticnet']},
     'LogisticRegression': {
         'C': [0.00001, 0.0001, 0.001, 0.01, 0.1, 1],
         'penalty': ['l2'],
         'solver': ['lbfgs', 'saga']},
+    
     'KNN': {
         'n_neighbors': [1, 5, 10, 25, 50, 100],
         'weights': ['uniform', 'distance'],
         'algorithm': ['auto', 'ball_tree', 'kd_tree']},
+    
     'DT': {
         'criterion': ['gini', 'entropy'],
         'max_depth': [1, 2, 15, 20, 30, 40, 50],
@@ -204,18 +206,20 @@ params = {
     },
 
 }"""
+    
+params = {
+        'SGDClassifier': {
+            'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.03],
+            'max_iter': [1000],  # number of epochs
+            'loss': ['hinge', 'log', 'modified_huber'],
+            'penalty': ['l2', 'l1', 'none', 'elasticnet']
+            }
+    
+        }
+
 
 models = {
-    'RandomForestClassifier': RandomForestClassifier(),
-}
-
-params = {
-    'RandomForestClassifier': {
-        'n_estimators': [10, 20, 30, 40, 50],
-        'max_depth': [10, 20, 30, 40, 50, 60],
-        'min_samples_leaf': [10, 20, 30, 40],
-        'max_features': ['sqrt', 'log2', 'auto'],
-        'min_samples_split': [2, 5, 10, 15]},
+    'SGD':SGDClassifier(),
 }
 
 
